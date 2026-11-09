@@ -16,7 +16,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test",
     "db:migrate": "tsx scripts/migrate.ts",
-    "check:persistence": "tsx scripts/check-persistence.ts"
+    "check:persistence": "tsx scripts/check-persistence.ts",
+    "check:recovery": "tsx scripts/check-recovery.ts"
   },
   "dependencies": {
     "nuxt": "4.4.2",

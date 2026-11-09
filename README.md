@@ -20,9 +20,10 @@ pnpm test
 pnpm build
 pnpm test:e2e
 pnpm check:persistence
+pnpm check:recovery
 ```
 
-Vitest couvre les règles métier et SQLite temporaire ; Playwright utilise le serveur compilé et une base temporaire. `test:e2e` et `check:persistence` exigent un build à jour. Les résultats réellement obtenus sont dans [runs/current.md](runs/current.md).
+Vitest couvre les règles métier et SQLite temporaire ; Playwright utilise le serveur compilé et une base temporaire. `test:e2e`, `check:persistence` et `check:recovery` exigent un build à jour. Les résultats réellement obtenus sont dans [runs/current.md](runs/current.md).
 
 ## Développement
 
@@ -78,7 +79,7 @@ Lancer depuis la racine du projet ; conserver `migrations/` avec le code pour la
 
 Saisir un titre puis Ajouter ou Entrée. Pendant le chargement ou l'actualisation de la liste, le titre reste saisissable et conservé ; Ajouter et Entrée attendent la fin de la lecture. Le serveur supprime les espaces aux extrémités ; un titre vide est refusé. Deux ajouts volontaires de même titre créent deux tâches distinctes. La liste présente les créations les plus récentes d'abord, avec un départage stable par identifiant.
 
-L'interface attend la confirmation serveur, bloque les soumissions pendant l'attente et conserve la saisie après erreur. En cas de résultat incertain, utiliser **Relire la liste avant de réessayer**, vérifier la présence de la tâche, puis décider explicitement d'un nouvel ajout. Il n'y a ni répétition automatique ni déduplication par titre. **Actualiser** retrouve également les ajouts effectués depuis un autre navigateur.
+L'interface attend la confirmation serveur, bloque les soumissions pendant l'attente et conserve la saisie après erreur. Les requêtes ont un délai maximal de 10 secondes si le serveur ne répond pas. Une lecture affiche alors son échec ; une écriture reste incertaine, car elle peut avoir été enregistrée avant la coupure. En cas de résultat incertain, utiliser **Relire la liste avant de réessayer**, vérifier la présence de la tâche, puis décider explicitement d'un nouvel ajout. Il n'y a ni répétition automatique ni déduplication par titre. **Actualiser** retrouve également les ajouts effectués depuis un autre navigateur.
 
 Cocher une tâche la termine ; décocher dans **Terminées** la rouvre. Cette section se trouve après les tâches à faire, repliée à chaque chargement de la boîte. Son état reste conservé lors d'un aller-retour au détail. Chaque section garde l'ordre de création, même après modification ou réouverture.
 
@@ -88,4 +89,4 @@ Cliquer sur le titre ouvre le détail sans changer l'état : panneau à côté d
 
 Les lectures et écritures sont coordonnées : aucune mutation ne part pendant une lecture, et aucune lecture pendant une écriture. Les cases et actions d'enregistrement attendent la confirmation serveur. Après un refus, la tâche reste inchangée à l'écran et la saisie est conservée. Après une réponse perdue, toutes les écritures attendent une **relecture explicite réussie** : vérifier le titre, l'état et la présence de la tâche avant une nouvelle tentative. Aucun PATCH ni DELETE n'est répété automatiquement. Si la tâche n'existe plus après relecture, son détail se ferme. Une relecture échouée laisse la reprise obligatoire.
 
-Le PC et le service doivent rester démarrés. Aucun fonctionnement hors connexion ni synchronisation instantanée n'est promis. L'accès LAN, le pare-feu, les contrôles sur vrai téléphone et les sauvegardes/restaurations restent à valider en M3. Aucune exposition Internet n'est prévue. Le contrôle d'origine n'est pas une authentification : les appareils autorisés du réseau domestique auront accès aux tâches. La destination distincte et la fréquence des sauvegardes sont à décider avant tout usage personnel quotidien.
+Le PC et le service doivent rester démarrés. Aucun fonctionnement hors connexion ni synchronisation instantanée n'est promis. Le [protocole M3](documentation/EXPLOITATION_M3.md) décrit le lancement LAN, le préalable pare-feu, les essais sur vrai téléphone et la sauvegarde/restauration isolée ; les validations obtenues et encore ouvertes sont dans le [checkpoint](runs/current.md). Aucune exposition Internet n'est prévue. Le contrôle d'origine n'est pas une authentification : les appareils autorisés du réseau domestique auront accès aux tâches. L’utilisateur a choisi une sauvegarde mensuelle sur disque externe ; dans le dossier `todo-backup`. Le point de montage du disque devra être identifié avant la première copie réelle.

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { Task } from '../shared/types/task'
 
+// Une coupure LAN doit libérer l'interface même sans erreur réseau immédiate.
+const requestTimeout = 10_000
 const tasks = ref<Task[]>([])
 const title = ref('')
 const loading = ref(true)
@@ -80,13 +82,13 @@ async function mutate(task: Task, update?: { title?: string, completed?: boolean
   let deleted = false
   try {
     if (update) {
-      const saved = await $fetch<Task>(`/api/tasks/${task.id}`, { method: 'PATCH', body: update, retry: 0 })
+      const saved = await $fetch<Task>(`/api/tasks/${task.id}`, { method: 'PATCH', body: update, retry: 0, timeout: requestTimeout })
       tasks.value = tasks.value.map(item => item.id === saved.id ? saved : item)
       if (update.title !== undefined) draft.value = saved.title
       message.value = 'Modification enregistrée.'
     }
     else {
-      await $fetch(`/api/tasks/${task.id}`, { method: 'DELETE', retry: 0 })
+      await $fetch(`/api/tasks/${task.id}`, { method: 'DELETE', retry: 0, timeout: requestTimeout })
       tasks.value = tasks.value.filter(item => item.id !== task.id)
       selectedId.value = null
       draft.value = ''
@@ -131,7 +133,7 @@ async function reload() {
   loading.value = true
   loadFailed.value = false
   try {
-    tasks.value = await $fetch<Task[]>('/api/tasks', { retry: 0 })
+    tasks.value = await $fetch<Task[]>('/api/tasks', { retry: 0, timeout: requestTimeout })
     uncertain.value = false
     if (wasUncertain) message.value = 'Liste relue. Vérifiez le titre, l’état et la présence de la tâche avant de soumettre à nouveau ; votre saisie est conservée.'
     if (selectedId.value && !selected.value) {
@@ -155,7 +157,7 @@ async function create() {
   message.value = ''
   try {
     const created = await $fetch<Task>('/api/tasks', {
-      method: 'POST', body: { title: title.value }, retry: 0,
+      method: 'POST', body: { title: title.value }, retry: 0, timeout: requestTimeout,
     })
     tasks.value = [created, ...tasks.value].sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id))
     title.value = ''

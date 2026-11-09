@@ -1,3 +1,62 @@
+# Checkpoint — M3 Valider l’usage au domicile
+
+9 novembre 2026. Changement `capture-et-gestion-des-taches`, schéma `spec-driven`. M3 (3.1–3.5) **terminé**, progression **20/20** ; CLI final `all_done`, cinq tâches M3 confirmées terminées. Base Git **main**, HEAD **3919a756ffc488cd888f03a888297293d1f8da7a** (`Implement task capture and management milestones`), arbre propre au démarrage. Modifications M3 non commitées. Les bilans M1/M2 conservés plus bas sont historiques : leurs mentions « non commité » ou « M3 non autorisé » ne décrivent plus l’état courant.
+
+## Résultat et fichiers utiles
+
+- [Protocole d’exploitation](../documentation/EXPLOITATION_M3.md) : commandes compilées LAN sur données isolées, relevé réseau, restriction temporaire ciblée et retrait, protocole tactile, arrêt/reprise et copie/restauration. [README](../README.md) lié au protocole et complété.
+- [Interface](../app/app.vue) : correction observée en M3, délai maximal **10 secondes** sur GET/POST/PATCH/DELETE. `retry: 0`, sérialisation lecture/écriture et reprise explicite conservés. Une lecture sans réponse affiche l’échec ; une écriture sans réponse reste incertaine, saisie préservée, sans nouvelle écriture avant relecture explicite.
+- [Tests de délai réseau](../tests/e2e/network-timeout.spec.ts) : lecture suspendue puis reprise, création réellement écrite mais réponse suspendue, saisie conservée, aucune répétition automatique et tâche retrouvée par relecture. Les deux cas échouent sur l’ancien build puis passent après correction.
+- [Contrôle de récupération](../scripts/check-recovery.ts), commande `pnpm check:recovery` dans [package.json](../package.json) : crée deux tâches par HTTP (active et terminée), attend l’arrêt complet du serveur, copie le répertoire fermé vers une sauvegarde puis une restauration neuves, compare tous les champs par HTTP. Ignore la base du terminal et nettoie seulement son répertoire temporaire.
+- [Tâches OpenSpec](../openspec/changes/capture-et-gestion-des-taches/tasks.md) : cases 3.1–3.4 contrôlées à leurs lignes 40–43 avant modification et progrès confirmés à chaque fois par le CLI (17, 18, 19 et 16/20 respectivement, selon l’ordre d’exécution).
+
+## Réseau, téléphone et décisions utilisateur
+
+- Relevé réel : `enp6s0`, **192.168.1.11/24**, passerelle `192.168.1.1`. Firewalld actif, zone `FedoraWorkstation` ouvrant déjà `1025-65535/tcp` sans restriction de source ; pas de simple ouverture supplémentaire.
+- Autorisation explicite reçue pour ajouter puis retirer une règle **uniquement en mémoire**, sans rechargement global ni modification permanente : `rule family="ipv4" priority="-10" source not address="192.168.1.0/24" destination address="192.168.1.11" port port="3102" protocol="tcp" reject`. Ajout réussi et confirmé par `--query-rich-rule`/`--list-rich-rules`. Node lié uniquement à l’IPv4 LAN, jamais à l’IPv6 publique ni aux interfaces Docker. GET LAN et interface PC réussis, POST d’origine étrangère puis sans origine en **403**, liste identique avant/après. Créations autorisées PC et téléphone réussies.
+- Appareil réel annoncé par l’utilisateur : **Samsung A37, Chrome**, Wi-Fi domestique. Versions Android/Chrome non communiquées. Premier échec de connexion expliqué par l’utilisateur : téléphone pas encore sur le Wi-Fi ; accès réussi après connexion.
+- Retour utilisateur **« 1–6 ok »** sur le protocole tactile : présence de la tâche PC ; ajout téléphone ; détail/retour, titre modifié/enregistré et brouillon abandonné ; réalisation, consultation dans Terminées et réouverture ; confirmation avec Annuler puis Supprimer pour tâche active et terminée ; aucun défilement horizontal, ajout rapide accessible en liste/détail avec clavier ouvert/fermé. Observations rapportées par l’utilisateur, pas une manipulation directe de l’agent. Aucun défaut tactile signalé.
+- Échange **PC → téléphone** confirmé par l’utilisateur. Échange **téléphone → PC** observé par l’agent après clic Actualiser : `M3 téléphone vers PC` présente. Avant arrêt, cette tâche reste active et `M3 PC vers téléphone` a été terminée depuis le PC.
+- Après arrêt puis redémarrage du build corrigé sur la même base : réponses HTTP avant/après identiques (`cmp /tmp/mytodo-m3-before-restart.json /tmp/mytodo-m3-after-restart.json`), deux titres/états retrouvés dans le navigateur PC ; utilisateur confirme les mêmes états après rechargement complet sur téléphone.
+- Premier arrêt sur téléphone : chargement persiste plus de 30 secondes, puis l’erreur et Réessayer apparaissent. Délai applicatif absent, corrigé à 10 s. Premier recontrôle téléphone non concluant (>10–15 s) ; cause non prouvée. Après fermeture de l’ancien onglet et chargement d’un **nouvel onglet** `/?controle=m3-2` avec tâches visibles, nouvel arrêt réel : utilisateur confirme **« Erreur et bouton Réessayer affichés »** en réponse au contrôle à 10–15 s. Ne pas transformer l’hypothèse d’une ancienne page en cause prouvée.
+- Aucun mode hors connexion ni synchronisation instantanée : service/PC requis, relecture au chargement ou par Actualiser, pas de file locale ni répétition automatique.
+- Choix sauvegardes reçus : **disque externe**, dossier **`todo-backup`**, **une fois par mois**. Le point de montage sera à identifier lors de la première copie réelle. Aucune copie personnelle ni planification automatique. Les copies/restaurations exécutées restent jetables, sur des chemins distincts du même disque ; aucun test de panne du disque ni copie sur le disque externe réel non monté/désigné.
+
+## Vérifications propres à ce chat sur la cible finale
+
+| Commande / contrôle | Résultat observé |
+| --- | --- |
+| `openspec list --json`, `status`, `instructions apply` | Racine locale, schéma spec-driven, artefacts et documents applicables lus. Aucun champ context/operationGuidance supplémentaire. |
+| `node --version`, `pnpm --version` | 24.14.0 et 10.33.0. |
+| `pnpm test` | **40/40 Vitest**, 2 fichiers ; relancé après correction du délai. |
+| `pnpm typecheck` | Réussi sur interface, scripts et tests finaux. |
+| `pnpm lint` | Réussi sans avertissement sur sources finales. |
+| `pnpm build` | Réussi après correction du délai ; avertissement connu de sourcemap Nuxt module-preload-polyfill. |
+| `pnpm test:e2e` | **23/23 Playwright**, serveur compilé et base isolée : 21 cas existants + 2 cas de délai suspendu avec horloge navigateur. |
+| `pnpm check:persistence` | Réussi sur build final : création, PATCH titre/état, suppressions active/terminée, redémarrages et absence de recréation tardive. |
+| `pnpm check:recovery` | Réussi sur build final : service arrêté avant copie du répertoire, sauvegarde, restauration distincte et relecture HTTP identique des titres/états/identifiants/dates de 2 tâches. |
+| Navigateur PC intégré, serveur local isolé puis LAN | Ajout, vraie coupure et erreur visible, reprise et tâche retrouvée ; échange téléphone vers PC après Actualiser, réalisation et relecture après redémarrage. Aucun viewport assimilé à un test tactile. |
+| Téléphone réel | Résultats utilisateur détaillés ci-dessus : parcours tactile, échanges et titres/états conservés ; erreur à l’arrêt finalement confirmée dans le nouvel onglet du build corrigé. |
+| Pare-feu et fin d’essais | Ajout temporaire autorisé puis **retrait réussi** après arrêt du serveur ; `--list-rich-rules` vide et `ss -ltn 'sport = :3102'` sans écoute. |
+
+Échecs intermédiaires distingués : Playwright initial bloqué par sockets sandbox (`EPERM`), relancé avec autorisation puis réussi ; premier typecheck du script de récupération en TS7022, annotations Response ajoutées puis réussite ; lectures netlink initialement bloquées, relancées avec autorisation en lecture. Deux tests nouveaux volontairement exécutés sur ancien build : échecs attendus faute de délai, puis réussite après correction. Les échecs/limites ne sont pas présentés comme des réussites. Deux avertissements h3 sur `statusMessage` ont été visibles après les refus d’origine, sans échec associé ; aucune correction hors scope. Les résultats M1/M2 rapportés par l’orchestrateur (40 Vitest, 21 Playwright et autres checks) restent distincts de toutes ces relances M3.
+
+Dernière consolidation 3.5 : case vérifiée à la ligne 44 après préparation du handoff et contrôle des fichiers, cochée puis confirmation CLI **20/20**, état `all_done`. Liens locaux des trois documents et blocs Markdown contrôlés, `git diff --check` réussi.
+
+## Handoff pour un futur Verify en contexte neuf
+
+- Cible : **main**, HEAD **3919a756ffc488cd888f03a888297293d1f8da7a**, travail M3 **non commité**, stabilisé à ce bilan. Huit chemins modifiés/ajoutés : `README.md`, `app/app.vue`, `openspec/changes/capture-et-gestion-des-taches/tasks.md`, `package.json`, `runs/current.md`, `documentation/EXPLOITATION_M3.md`, `scripts/check-recovery.ts`, `tests/e2e/network-timeout.spec.ts`. Ni migration, ni schéma, ni dépendance modifiés.
+- Artefacts du changement : `openspec/changes/capture-et-gestion-des-taches/proposal.md`, `design.md`, `tasks.md`, `specs/home-network-access/spec.md`, `specs/task-management/spec.md`. Références : `documentation/PROJECT_BRIEF.md`, `PROJECT_FOUNDATION.md`, `UI_DIRECTION.md`, `DEVELOPPEMENT.md`, et protocole M3. Relire AGENTS et le template de consignes. Les artefacts de planification restent inchangés, sauf les cinq cases M3.
+- Aucune exigence M3 restante après consolidation finale. Le futur Verify devra contrôler indépendamment la cohérence code/artefacts sur cette cible stable et distinguer les faits observés des retours utilisateur. Aucun Verify ni Archive exécuté ici ; pas de reviewer, sous-agent, autre chat, commit, push ou publication.
+- Limites d’exploitation explicites : serveur **arrêté**, règle temporaire **retirée**. Pour une nouvelle session LAN, revérifier l’IPv4 DHCP et appliquer une restriction autorisée avant démarrage. Une configuration permanente du pare-feu ou un service système n’a pas été demandé/autorisé. L’utilisateur ignore la configuration des redirections de sa box ; aucun changement du routeur, tunnel ou exposition Internet réalisé. Lecture des règles nft refusée sans root (`sudo -n` demande un mot de passe) ; ni audit routeur ni test depuis Internet/hors sous-réseau effectué. Le contrôle d’origine ne remplace pas une authentification.
+- Données de preuve uniquement jetables : base LAN arrêtée `/tmp/mytodo-m3-lan-Z6woQG/tasks.sqlite`, base PC locale arrêtée `/tmp/mytodo-m3-pc-xm0tGM/tasks.sqlite`, snapshots HTTP `/tmp/mytodo-m3-before-restart.json` et `/tmp/mytodo-m3-after-restart.json`. Captures `/tmp/mytodo-m3-pc.png`, `/tmp/mytodo-m3-lan-pc.png`, `/tmp/mytodo-m3-two-devices.png`, `/tmp/mytodo-m3-after-restart.png`, `/tmp/mytodo-m3-pc-stopped-final.png`. Fichiers temporaires non garantis après redémarrage ; le script check:recovery nettoie ses seules copies automatiques. Aucune base personnelle touchée.
+
+---
+
+# Historique M2 — bilan conservé
+
+Les mentions de travail non commité et de M3 non autorisé ci-dessous décrivent le bilan M2 antérieur au commit 3919a75 et à l’autorisation M3 actuelle.
+
 # Checkpoint — M2 Gérer les tâches
 
 9 novembre 2026. Changement `capture-et-gestion-des-taches`, schéma `spec-driven`. M2 (2.1–2.7) terminé : progression **15/20**, M1 **8/8**, M2 **7/7**, M3 **0/5**. M3 n'est pas commencé et exige une autorisation explicite dans un autre chat vierge. Aucun sous-agent, autre chat, review indépendante, Verify, archive, commit, push ou publication lancé.
