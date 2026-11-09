@@ -1,0 +1,11 @@
+node_modules/
+.nuxt/
+.output/
+.data/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+.env
+test-results/
+playwright-report/
