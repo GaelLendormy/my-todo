@@ -1,0 +1,1 @@
+Creer un fichier ou un moyen d'installer directment dans le nouveau projet le ou les template, le guide et skill? peut etre a la facon de openspec ou meme une commande qui insstalle mon projet ai dev et opensepc?oui qui demande en tout cas?
