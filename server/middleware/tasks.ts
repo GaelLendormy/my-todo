@@ -1,5 +1,6 @@
 export default defineEventHandler((event) => {
-  if (event.path.split('?')[0] !== '/api/tasks' && !event.path.startsWith('/api/tasks/')) return
+  const path = event.path.split('?')[0]!
+  if (!['tasks', 'categories'].some(resource => path === `/api/${resource}` || path.startsWith(`/api/${resource}/`))) return
   setHeader(event, 'Cache-Control', 'no-store')
   if (['GET', 'HEAD'].includes(event.method)) return
   const origins = (process.env.MYTODO_ALLOWED_ORIGINS

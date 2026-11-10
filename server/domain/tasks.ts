@@ -5,6 +5,7 @@ import { tasks } from '../db/schema'
 
 export class InvalidTask extends Error {}
 export class MissingTask extends Error {}
+export class MissingTaskCategory extends Error {}
 
 export function parseId(id: unknown): string {
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
@@ -13,16 +14,17 @@ export function parseId(id: unknown): string {
   return id
 }
 
-export function parseUpdate(input: unknown): { title?: string, completed?: boolean } {
+export function parseUpdate(input: unknown): { title?: string, completed?: boolean, categoryId?: string | null } {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new InvalidTask('Modification invalide.')
   const keys = Object.keys(input)
-  if (!keys.length || keys.some(key => key !== 'title' && key !== 'completed')) throw new InvalidTask('Propriété de modification invalide.')
-  const update: { title?: string, completed?: boolean } = {}
+  if (!keys.length || keys.some(key => key !== 'title' && key !== 'completed' && key !== 'categoryId')) throw new InvalidTask('Propriété de modification invalide.')
+  const update: { title?: string, completed?: boolean, categoryId?: string | null } = {}
   if ('title' in input) update.title = parseCreation({ title: input.title }).title
   if ('completed' in input) {
     if (typeof input.completed !== 'boolean') throw new InvalidTask('État invalide.')
     update.completed = input.completed
   }
+  if ('categoryId' in input) update.categoryId = input.categoryId === null ? null : parseId(input.categoryId)
   return update
 }
 
@@ -42,7 +44,12 @@ export function taskRepository(connection: ReturnType<typeof openDatabase>) {
     update(id: unknown, input: unknown) {
       const target = parseId(id)
       const update = parseUpdate(input)
-      const saved = connection.db.update(tasks).set(update).where(eq(tasks.id, target)).returning().get()
+      let saved
+      try { saved = connection.db.update(tasks).set(update).where(eq(tasks.id, target)).returning().get() }
+      catch (error) {
+        if ((error as { code?: string }).code === 'SQLITE_CONSTRAINT_FOREIGNKEY') throw new MissingTaskCategory('La catégorie choisie est absente. Actualisez puis remplacez-la dans votre brouillon.')
+        throw error
+      }
       if (!saved) throw new MissingTask('Cette tâche est absente.')
       return saved
     },

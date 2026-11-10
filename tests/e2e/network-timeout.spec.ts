@@ -4,7 +4,7 @@ for (const width of [390, 1280]) {
   for (const failure of ['503', 'timeout'] as const) {
     test(`détail ${width}px : erreur ${failure} visible, reprise et brouillon conservés`, async ({ page }) => {
       await page.setViewportSize({ width, height: 844 })
-      const task = { id: '00000000-0000-4000-8000-000000000000', title: 'Détail lecture isolée', completed: false, createdAt: 1 }
+      const task = { id: '00000000-0000-4000-8000-000000000000', title: 'Détail lecture isolée', completed: false, categoryId: null, createdAt: 1 }
       let mode: 'success' | '503' | 'timeout' = 'success'
       let reads = 0
       let writes = 0

@@ -69,3 +69,61 @@ test('API : mises à jour partielles, validation et suppression sans recréation
   expect((await request.delete('/api/tasks/invalide', { headers })).status()).toBe(400)
   expect((await request.get('/api/tasks').then(r => r.json())).find((t: { id: string }) => t.id === task.id)).toBeUndefined()
 })
+
+test('API catégories : protections, conflits et classement atomique', async ({ request }) => {
+  const headers = { Origin: origin }
+  const before = await request.get('/api/categories').then(r => r.json())
+  const rejectedOrigins: Record<string, string>[] = [{}, { Origin: 'https://etranger.example' }]
+  for (const refused of rejectedOrigins) {
+    expect((await request.post('/api/categories', { headers: refused, data: { name: 'Interdite' } })).status()).toBe(403)
+  }
+  expect((await request.post('/api/categories', { headers: { ...headers, 'Content-Type': 'text/plain' }, data: '{}' })).status()).toBe(415)
+  expect((await request.post('/api/categories', { headers: { ...headers, 'Content-Type': 'application/json' }, data: '{' })).status()).toBe(400)
+  for (const data of [{ name: ' ' }, { name: '\0' }, { name: 2 }, { name: 'A', extra: true }]) {
+    expect((await request.post('/api/categories', { headers, data })).status()).toBe(400)
+  }
+  expect(await request.get('/api/categories').then(r => r.json())).toEqual(before)
+  const name = `ÉTUDES API ${Date.now()}`
+  const created = await request.post('/api/categories', { headers, data: { name } })
+  expect(created.status()).toBe(201)
+  expect(created.headers()['cache-control']).toBe('no-store')
+  const category = await created.json()
+  const url = `/api/categories/${category.id}`
+  expect((await request.post('/api/categories', { headers, data: { name: `  ${name.toLowerCase()}  ` } })).status()).toBe(409)
+  const other = await request.post('/api/categories', { headers, data: { name: `${name} autre` } }).then(r => r.json())
+  expect((await request.patch(`/api/categories/${other.id}`, { headers, data: { name } })).status()).toBe(409)
+  for (const method of ['patch', 'delete'] as const) {
+    for (const rejected of rejectedOrigins) {
+      const refused = await request[method](url, { headers: rejected, data: { name: 'Interdite' } })
+      expect(refused.status()).toBe(403)
+      expect(refused.headers()['cache-control']).toBe('no-store')
+    }
+  }
+  expect((await request.patch(url, { headers: { ...headers, 'Content-Type': 'text/plain' }, data: '{}' })).status()).toBe(415)
+  expect((await request.patch(url, { headers, data: { name: ' ' } })).status()).toBe(400)
+  const task = await request.post('/api/tasks', { headers, data: { title: 'Classement API' } }).then(r => r.json())
+  expect(task.categoryId).toBeNull()
+  const taskUrl = `/api/tasks/${task.id}`
+  const assigned = await request.patch(taskUrl, { headers, data: { categoryId: category.id } })
+  expect(assigned.status()).toBe(200)
+  expect(await assigned.json()).toEqual({ ...task, categoryId: category.id })
+  const renamed = await request.patch(url, { headers, data: { name: `${name} renommée` } })
+  expect(renamed.status()).toBe(200)
+  expect(renamed.headers()['cache-control']).toBe('no-store')
+  expect((await request.get('/api/tasks').then(r => r.json())).find((t: { id: string }) => t.id === task.id).categoryId).toBe(category.id)
+  expect(await request.patch(taskUrl, { headers, data: { categoryId: other.id, completed: true } }).then(r => r.json())).toEqual({ ...task, categoryId: other.id, completed: true })
+  expect(await request.patch(taskUrl, { headers, data: { categoryId: null } }).then(r => r.json())).toEqual({ ...task, completed: true })
+  await request.patch(taskUrl, { headers, data: { categoryId: category.id } })
+  const removed = await request.delete(url, { headers })
+  expect(removed.status()).toBe(204)
+  expect(removed.headers()['cache-control']).toBe('no-store')
+  const absent = await request.patch(taskUrl, { headers, data: { title: 'Partiel interdit', categoryId: category.id } })
+  expect(absent.status()).toBe(404)
+  expect((await absent.json()).data.code).toBe('CATEGORY_MISSING')
+  expect((await request.get('/api/tasks').then(r => r.json())).find((t: { id: string }) => t.id === task.id)).toEqual({ ...task, completed: true })
+  expect((await request.patch(taskUrl, { headers, data: { categoryId: 5 } })).status()).toBe(400)
+  expect((await request.patch(url, { headers, data: { name: 'Absente' } })).status()).toBe(404)
+  expect((await request.delete(url, { headers })).status()).toBe(404)
+  expect((await request.delete('/api/categories/invalide', { headers })).status()).toBe(400)
+  expect((await request.get('/api/categories')).headers()['cache-control']).toBe('no-store')
+})

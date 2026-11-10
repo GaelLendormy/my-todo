@@ -1,3 +1,99 @@
+# Checkpoint — M1 validé
+
+10 novembre 2026. Changement `organisation-des-taches`. **M1 « Classer et retrouver » entièrement validé : 1.1–1.10 terminées, progression 10/18.** L'utilisateur confirme le test téléphone après la correction du retour à la liste. M2 « Repérer ce qui compte » reste non commencé et non autorisé.
+
+- Les essais tactiles précédemment rapportés sur **A37** sont complétés par la confirmation explicite du nouveau retour à la liste après Enregistrer. Validation rapportée par l'utilisateur ; aucune nouvelle manipulation directe du téléphone par ce chat. OS, navigateur et versions n'ont pas été précisés dans cette confirmation.
+- Les résultats applicatifs de la reprise précédente restent la référence : **53/53 Vitest, 52/52 Playwright, typecheck, lint et build réussis**, ainsi que contrôle manuel du retour à la liste sur ordinateur et au viewport mobile. Aucun code applicatif modifié ni nouvelle exécution de ces suites pendant cette consignation. L'avertissement historique de sourcemap Nuxt demeure.
+- La limite du premier essai de coupure reste consignée : le redémarrage utilisateur avait visé une nouvelle base temporaire. La persistance sur la même base et la restauration sont couvertes par les checks automatisés antérieurs, sans nouvelle preuve tactile de récupération déclarée.
+- La case 1.10 a été vérifiée à sa ligne puis cochée ; progression et état relus par OpenSpec. Validation stricte du changement et `git diff --check` réussis. L'utilisateur a ensuite demandé de committer M1, puis d'attendre. Aucun push, Verify ou Archive demandé.
+- **Après le commit M1 autorisé : attendre la demande de suite.** Le commit regroupe le code, les tests, la documentation, les artefacts de planification et le suivi validé. M2 exige toujours une autorisation explicite. Le Verify final du changement reste prévu après les deux milestones.
+
+Les bilans ci-dessous sont historiques et conservent leurs statuts au moment de leur rédaction.
+
+---
+
+# Historique — M1, retour à la liste après Enregistrer
+
+10 novembre 2026. Changement `organisation-des-taches`. Retour utilisateur après essais tactiles sur **A37** : validation globale des parcours, avec demande de fermer le détail après Enregistrer pour rendre le succès plus clair. **Correction implémentée et contrôlée ; 1.1–1.9 terminées, 1.10 ouverte uniquement pour confirmer au toucher ce nouveau retour à la liste. Progression : 9/18.** M2 reste non autorisé et non commencé.
+
+## Validation téléphone rapportée par l'utilisateur
+
+- L'utilisateur valide les essais sur tous les points présentés : navigation, catégories, recherche, classement, renommage, suppression, annulation et ergonomie tactile. Modèle annoncé : **A37** ; OS, navigateur et versions non précisés dans ce retour. Ces résultats sont rapportés par l'utilisateur, sans manipulation directe de ce chat.
+- Pour la coupure, l'utilisateur rapporte que le brouillon est conservé. Il a relancé le bloc complet de préparation, qui crée un nouveau chemin avec `mktemp`, puis a retrouvé une base vide. Ce retour ne prouve donc pas une relecture de la même base après redémarrage. Les contrôles automatisés de persistance sur la même base sont documentés dans le bilan M1 historique ci-dessous ; ils ne sont pas remplacés par une nouvelle preuve tactile de récupération.
+- La demande explicite qui suit ces essais remplace la règle initiale de maintien du détail après succès. La validation tactile précédente ne couvre pas encore cette nouvelle fermeture ; seul ce geste reste à confirmer, sans recommencer toute la grille déjà validée.
+
+## Correction et cohérence
+
+- [app.vue](../app/app.vue) : Enregistrer attend le retour positif de la mutation, puis ferme le détail et restaure le focus dans la liste d'origine. Si la tâche quitte la vue après classement, le message confirme l'enregistrement et explique son absence. Sans modification, retour sans PATCH avec message explicite. Pendant l'attente, après refus ou réponse perdue, le détail et le brouillon restent ouverts. Une relecture seule ne déclenche pas cette fermeture.
+- [Tests du retour](../tests/e2e/detail-save.spec.ts) : huit nouveaux cas couvrent titre et classement à 390/1280 px, confirmation différée, absence de changement sans écriture et erreurs sur mobile avec reprise. Les [parcours de gestion](../tests/e2e/management.spec.ts) et [d'organisation](../tests/e2e/organization.spec.ts) ont été adaptés au retour automatique tout en conservant les assertions de persistance, d'état, de brouillon et de champs partiels.
+- [Proposition](../openspec/changes/organisation-des-taches/proposal.md), [design](../openspec/changes/organisation-des-taches/design.md), [gestion](../openspec/changes/organisation-des-taches/specs/task-management/spec.md), [organisation](../openspec/changes/organisation-des-taches/specs/task-organization/spec.md) et [tâches](../openspec/changes/organisation-des-taches/tasks.md) reflètent le comportement demandé. La tâche 1.8 a été rouverte pour l'ajustement puis recochée après vérification de sa ligne et confirmation CLI.
+- [README](../README.md) actualisé. Le [protocole d'exploitation](../documentation/EXPLOITATION_M3.md) distingue maintenant explicitement la préparation initiale avec `mktemp` de la simple commande de redémarrage conservant la base. Pas de changement de migration, API, schéma ou données personnelles dans cette correction.
+
+## Checks réellement exécutés dans cette reprise
+
+| Contrôle | Résultat |
+| --- | --- |
+| Reproduction avant correction sur le build M1 précédent | **4 échecs attendus** : titre/catégorie à 390/1280 px, détail encore visible après confirmation. |
+| `pnpm test` | **53/53** réussis sur SQLite jetable. |
+| `pnpm typecheck`, `pnpm lint` | Réussis, repassés après les dernières adaptations de tests. |
+| `pnpm build` | Réussi sur le code corrigé ; avertissement historique de sourcemap Nuxt conservé. |
+| `pnpm test:e2e` final | **52/52** réussis sur serveur compilé et base isolée : 44 cas existants adaptés + 8 nouveaux. Refus et réponses perdues conservent le détail ; aucun PATCH implicite ou répété. |
+| Contrôle manuel navigateur intégré | Serveur compilé `127.0.0.1:3104`, base jetable `/tmp/mytodo-detail-return-4t2SFW/tasks.sqlite`. Capture, ouverture du détail, renommage puis Enregistrer : retour à la liste, message de succès et focus sur la ligne observés au format ordinateur puis au viewport **390×844**. Preuve temporaire : `/tmp/mytodo-detail-save-mobile.jpg`. Viewport réinitialisé, onglet fermé, serveur arrêté. Aucun téléphone physique manipulé. |
+| OpenSpec strict et `git diff --check` | Réussis ; liens locaux des documents concernés contrôlés. |
+
+Les échecs intermédiaires ne sont pas présentés comme des réussites : premier lancement Playwright interdit par IPC sandbox, relancé avec autorisation ; première suite après correction, deux assertions trop restrictives sur le contrôle de focus de repli, adaptées à un contrôle visible de la liste ou de capture ; deuxième suite, sélecteur de statut ambigu pendant la relecture, ciblé sur le message d'enregistrement. La suite finale passe sans changement applicatif supplémentaire. Les tests utilisent uniquement des données jetables et des serveurs en boucle locale. Les scripts `check:persistence` et `check:recovery` n'ont pas été relancés : ni leur logique ni la persistance n'ont changé dans cette reprise ; leurs résultats antérieurs restent historiques.
+
+## Prochaine action
+
+Redémarrer l'instance de test sur son chemin existant, sans nouveau `mktemp`, puis actualiser le téléphone. Vérifier seulement qu'une modification de tâche suivie d'Enregistrer ramène à la liste avec le message de succès. Consigner cette confirmation pour terminer 1.10. Aucun besoin de répéter les autres essais tactiles déjà validés. Ne pas démarrer M2, Verify ou Archive automatiquement. Aucun commit, push, autre chat, sous-agent, changement réseau ou modification de base personnelle réalisé dans cette reprise.
+
+---
+
+# Historique — Implémentation initiale de M1 « Classer et retrouver »
+
+10 novembre 2026. Changement `organisation-des-taches`, schéma `spec-driven`, implémentation limitée à M1 sur autorisation explicite. **1.1 à 1.9 terminées ; 1.10 reste ouverte pour le contrôle tactile sur vrai téléphone. Progression CLI : 9/18.** M2 « Repérer ce qui compte » (2.1–2.8) reste non autorisé et non commencé. Aucun sous-agent, autre chat, review indépendante, Verify, Archive, commit, push, publication, changement réseau ou manipulation de données personnelles dans ce chat.
+
+## Résultat et fichiers utiles
+
+- Migration incrémentale [0001_categories.sql](../migrations/0001_categories.sql), [journal](../migrations/meta/_journal.json), [schéma](../server/db/schema.ts) et [connexion](../server/db/database.ts) : table de catégories, clé unique canonique, référence nullable `category_id ON DELETE SET NULL`, clés étrangères actives à chaque ouverture. `0000_tasks.sql` préservé ; aucune migration personnelle exécutée.
+- [Types de catégorie](../shared/types/category.ts) et [tâche](../shared/types/task.ts), [normalisation commune](../shared/category-names.ts) : NFC, espaces Unicode réduits (y compris U+0085), casse affichée conservée, clé Unicode minuscule, accents et ponctuation significatifs ; tri français stable. NUL et noms vides refusés. Unicité garantie par SQLite, renommage gardant l’identifiant et suppression déclassant actives/terminées sans toucher leurs autres champs.
+- [Métier catégories](../server/domain/categories.ts), [tâches](../server/domain/tasks.ts), [API catégories](../server/api/categories/index.get.ts), [connexion serveur commune](../server/utils/database.ts), [erreurs](../server/utils/categories.ts) et [middleware](../server/middleware/tasks.ts) : CRUD catégories 201/200/204, validation 400, absences 404, conflit 409, indisponibilité 503 ; origine/JSON/no-store étendus. PATCH tâche accepte `categoryId` nullable ; POST reste titre seul. Référence disparue refusée atomiquement avec code `CATEGORY_MISSING`, distinct d’une tâche absente.
+- [État des ressources](../app/composables/useTaskResources.ts), [navigation](../app/components/CategoryNavigation.vue), [sélecteur](../app/components/CategoryPicker.vue), [détail](../app/components/TaskDetail.vue), [assemblage](../app/app.vue), [lignes](../app/components/TaskList.vue) : boîte sans catégorie, toutes, catégories (menu direct mobile), gestion explicite des catégories et confirmation de suppression ; suggestions filtrées utilisables au clavier, création distincte de l’enregistrement du classement, conservation des brouillons. Capture toujours non classée avec accès à la boîte. Détail sélectionné dans le tableau complet et conservé après déplacement hors vue ; focus de repli ; Terminées mémorisées par vue dans la session.
+- Toutes les mutations sont sérialisées, `retry: 0`, délai 10 s. Les deux GET sont attendus jusqu’à leur fin et publiés ensemble seulement en cas de réussite des deux ; une lecture partielle ne débloque pas l’incertitude. Messages communs visibles dans le détail mobile. Référence inconnue explicitement indisponible, sans assimilation à Sans catégorie. PATCH ne transmet que les champs modifiés par rapport à l’ouverture/dernière confirmation du brouillon, même si une relecture constate des changements indépendants d’un autre appareil.
+- [Tests SQLite](../tests/categories.test.ts) et [processus concurrent](../tests/fixtures/create-category.ts), [API](../tests/e2e/api.spec.ts), [organisation navigateur](../tests/e2e/organization.spec.ts), mocks historiques adaptés. [Persistance](../scripts/check-persistence.ts) et [récupération](../scripts/check-recovery.ts) enrichies. [README](../README.md#organisation-m1--catégories) et [développement](../documentation/DEVELOPPEMENT.md#organisation-des-tâches--m1) actualisés.
+
+## Validations réellement exécutées dans ce chat
+
+| Commande / contrôle | Résultat observé |
+| --- | --- |
+| `openspec list --json`, `status`, `instructions apply --change organisation-des-taches --json` | Racine locale et état ready confirmés ; tous les artefacts et documents applicables lus. Pas de context/operationGuidance additionnel retourné. Chaque case 1.1–1.9 contrôlée à sa ligne avant modification puis progression relue par CLI. |
+| `pnpm test` | **53/53**, 3 fichiers, dernière exécution sur la normalisation finale : migration vierge et depuis vraie base 0000 peuplée, réapplication, contraintes ciblées et FK, réouverture, validation, deux processus réellement concurrents sur deux connexions, conflits, renommage et déclassement atomique persistant. |
+| `pnpm typecheck` | Réussi, Nuxt et scripts/tests, dernière exécution après les tests finaux et nettoyage du script. |
+| `pnpm lint` | Réussi sans avertissement sur la dernière cible. |
+| `pnpm build` | Réussi sur le code M1 final ; avertissement historique de sourcemap Nuxt module-preload-polyfill. Log temporaire `/tmp/mytodo-m1-build.log`. |
+| `pnpm test:e2e` | **44/44** sur serveur compilé et base isolée. API/protections, régressions capture/gestion, navigation desktop/mobile, sections, clavier/focus, sélecteur et brouillons, doublon, disparition de catégorie, capture sans héritage, déplacement hors vue, publication commune avec chaque GET différé, refus et pertes après vraies écritures POST/PATCH/DELETE catégorie, relectures échouées séparément pour tâches/catégories, aucune répétition/double soumission, PATCH limités aux champs modifiés après relecture, référence inconnue explicite. Chromium Playwright ; un viewport mobile n’est pas un test tactile. |
+| `pnpm check:persistence` | Réussi sur données jetables : catégories créées/renommées, associations et tâches relues après redémarrage ; suppression de catégorie et déclassement actif/terminé relus après nouveau redémarrage ; absence de recréation tardive. |
+| `pnpm check:recovery` | Réussi sur données jetables : arrêt avant copie, sauvegarde puis restauration isolée, identifiants/titres/états/catégories/associations identiques par HTTP. La seule modification ultérieure du script enlève un bloc superflu et un espace final, validée par typecheck/lint. |
+| Exemple README `pnpm db:migrate` deux fois | Deux réussites en mode test avec chemin neuf `/tmp/mytodo-org-migration-*`, aucune donnée personnelle. |
+| Contrôle manuel navigateur intégré | Serveur compilé isolé `127.0.0.1:3102`. Capture par Entrée, création de catégorie, recherche « mai » au clavier/flèches/Entrée, classement et maintien du détail hors boîte, retour et focus, renommage avec association conservée, menu mobile Toutes/catégorie, erreur de doublon avec saisie conservée, confirmation et annulation Échap. Rendus inspectés **1280×900** et **390×844**, sans débordement horizontal observé ; largeur DOM mobile 375 pour viewport 390. Aucun téléphone physique utilisé. Capture de preuve `/tmp/mytodo-organisation-m1-desktop.jpg` (temporaire). Viewport réinitialisé ; serveur arrêté et absence d’écoute 3102 confirmée avec `ss`. |
+| Liens Markdown locaux et `git diff --check` | README et Développement : liens locaux résolus ; contrôle d’espaces réussi après correction. Liens du présent checkpoint contrôlés également à la finalisation. |
+
+Échecs intermédiaires corrigés ou relancés, distincts des résultats finaux : premier Playwright interdit par sockets sandbox (`EPERM`), relancé avec autorisation ; premières compilations échouées sur import relatif partagé Nuxt, corrigé avec alias `#shared` côté interface ; un avertissement d’ordre des attributs corrigé ; premier typecheck de tableaux d’en-têtes Playwright corrigé avec typage explicite ; deux mocks historiques sans `categoryId` adaptés après échec de leurs tests ; un espace final détecté par `git diff --check` puis corrigé. Première lecture netlink refusée par sandbox, relancée avec autorisation en lecture seule pour confirmer l’arrêt du serveur. Les warnings de couleurs terminal Playwright n’ont pas causé d’échec. Aucun résultat historique conservé plus bas n’est présenté comme un check exécuté ici.
+
+## Reste à faire et reprise
+
+- **1.10 ouverte** : seul le contrôle sur ordinateur a été exécuté ; il manque une validation tactile réelle sur téléphone, avec modèle, OS, navigateur/version et résultats datés. Sur une instance utilisant des données jetables et un accès déjà autorisé : vérifier menu Boîte/Toutes/catégories, création/renommage/suppression et annulation, recherche/sélection/Sans catégorie, création explicite distincte du classement, ajout sans héritage, déplacement hors vue, retour avec Terminées/focus, conservation des brouillons et erreurs visibles, absence de débordement horizontal. Ne pas cocher 1.10 sur la seule base de Playwright ou d’un viewport. Aucun résultat tactile rapporté par l’utilisateur dans ce chat.
+- **M2 non autorisé** : aucun champ priorité/date, filtre avancé, Ma journée, étapes, IA ou glisser-déposer ajouté. Ne pas démarrer M2 ni Verify/Archive lors de cette reprise sans demande appropriée.
+- Branche `main`, base **454eae6a07a6f20cea88284b28ed8aefde26de10** ; travail M1 non commité. À l’arrivée, seul `openspec/changes/organisation-des-taches/` était non suivi ; ses proposal/design/specs sont préservés, seules les cases du fichier tasks ont changé. Consulter Git et le suivi avant toute reprise ; ne pas écraser les modifications partagées.
+- Les serveurs des checks ont été arrêtés ; aucun pare-feu ni configuration réseau modifié. Les scripts nettoient leurs bases jetables ; les fichiers `/tmp` ne constituent pas des preuves durables. Aucun fichier de base personnelle consulté ou modifié.
+- Points à examiner par le chat d’origine : ergonomie réelle du sélecteur/menu sur téléphone et cohérence des retours de focus au toucher. Pas de défaut automatisé restant connu. Le milestone ne peut être déclaré entièrement validé avant le contrôle tactile.
+
+---
+
+# Historique antérieur — capture et gestion
+
+Les statuts et autorisations ci-dessous concernent le changement précédent, désormais historique. Le statut courant est celui de l’organisation M1 ci-dessus.
+
 # Checkpoint — Changement archivé
 
 10 novembre 2026. **`capture-et-gestion-des-taches` est archivé**, après résolution du WARNING Verify et confirmation utilisateur du test téléphone de la correction. Les bilans ci-dessous sont historiques.

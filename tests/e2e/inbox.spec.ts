@@ -54,7 +54,7 @@ test('bloque les doubles soumissions pendant l’enregistrement', async ({ page 
     if (route.request().method() !== 'POST') return route.fallback()
     count++
     await waiting
-    await route.fulfill({ status: 201, json: { id: 'waiting', title: 'En attente', completed: false, createdAt: 1 } })
+    await route.fulfill({ status: 201, json: { id: 'waiting', title: 'En attente', completed: false, categoryId: null, createdAt: 1 } })
   })
   await page.goto('/')
   await page.getByLabel('Nouvelle tâche').fill('En attente')
@@ -108,7 +108,7 @@ test('réponse perdue après écriture : aucune répétition, relecture obligato
 
 test('rendu mobile sans débordement avec titre long', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.route('**/api/tasks', route => route.fulfill({ json: [{ id: 'long', title: 'UnTrèsLongTitre'.repeat(30), completed: false, createdAt: 1 }] }))
+  await page.route('**/api/tasks', route => route.fulfill({ json: [{ id: 'long', title: 'UnTrèsLongTitre'.repeat(30), completed: false, categoryId: null, createdAt: 1 }] }))
   await page.goto('/')
   await expect(page.getByRole('listitem')).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

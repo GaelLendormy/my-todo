@@ -29,13 +29,13 @@ describe('persistance SQLite', () => {
     expect(taskRepository(connection).list()).toEqual([created])
   })
   it.each(['', ' ', '\t\r\n', '\u00a0\u2003', '\0'])('contraint aussi le titre SQL %j', (title) => {
-    expect(() => connection.sqlite.prepare('INSERT INTO tasks VALUES (?, ?, 0, 1)').run('id', title)).toThrow()
+    expect(() => connection.sqlite.prepare('INSERT INTO tasks (id, title, completed, created_at) VALUES (?, ?, 0, 1)').run('id', title)).toThrow(/CHECK constraint failed/)
   })
   it('impose les états booléens', () => {
-    expect(() => connection.sqlite.prepare('INSERT INTO tasks VALUES (?, ?, 2, 1)').run('id', 'Titre')).toThrow()
+    expect(() => connection.sqlite.prepare('INSERT INTO tasks (id, title, completed, created_at) VALUES (?, ?, 2, 1)').run('id', 'Titre')).toThrow(/CHECK constraint failed/)
   })
   it('trie par création décroissante puis identifiant', () => {
-    const insert = connection.sqlite.prepare('INSERT INTO tasks VALUES (?, ?, 0, ?)')
+    const insert = connection.sqlite.prepare('INSERT INTO tasks (id, title, completed, created_at) VALUES (?, ?, 0, ?)')
     insert.run('a', 'Premier', 1)
     insert.run('b', 'Égalité B', 2)
     insert.run('c', 'Égalité C', 2)
