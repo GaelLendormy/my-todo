@@ -1,3 +1,67 @@
+# Checkpoint — Validation finale avant archivage
+
+10 novembre 2026. Changement `capture-et-gestion-des-taches` : **20/20 tâches terminées, correction validée et clôture autorisée par l’utilisateur**. Les bilans conservés plus bas décrivent leurs états historiques.
+
+## Résultats de clôture
+
+- Le recontrôle indépendant du chat Verify a confirmé la résolution du WARNING sur l’erreur de lecture masquée dans le détail mobile, sans nouveau CRITICAL, WARNING ou SUGGESTION. Sa cible était `c9c03dc` avec les trois modifications de correction non commitées, identifiées par les empreintes du handoff ci-dessous.
+- Contrôles exécutés par Verify, puis rapport lus par l’orchestrateur : **27/27 Playwright**, **8/8 reproductions indépendantes** (liste/détail, mobile/ordinateur, HTTP 503/délai dépassé), build, typecheck, lint, validation OpenSpec stricte et `git diff --check` réussis. Brouillon, sélection et saisie conservés ; reprise au clavier et absence de mutations/répétitions automatiques vérifiées. Les **40/40 Vitest** restent un résultat exécuté par le chat d’implémentation, non relancé au recontrôle Verify.
+- Après restitution de la réserve sur le tactile de cette correction, l’utilisateur a déclaré « je valide le test telephone », puis autorisé la consignation du résultat, le commit et l’archivage. **Validation téléphone rapportée par l’utilisateur**, sans manipulation directe de l’orchestrateur ni nouveau détail sur l’appareil ou les versions. Cette confirmation lève la dernière réserve de clôture ; elle ne constitue pas une nouvelle observation instrumentée du chat Verify.
+- Aucune modification du code depuis la cible du recontrôle. La suite autorisée est de committer la correction et ce bilan, synchroniser les deux specs principales, puis archiver le changement. Aucun push demandé.
+
+## Limites d’exploitation conservées
+
+La configuration permanente du pare-feu et la première sauvegarde réelle mensuelle vers le disque externe (`todo-backup`, point de montage à identifier) restent à effectuer avant l’usage quotidien. Les essais LAN précédents utilisaient une règle temporaire retirée après arrêt du serveur ; les contrôles de récupération utilisaient des données jetables. L’avertissement de sourcemap Nuxt demeure. Ces limites sont décrites dans le [protocole d’exploitation](../documentation/EXPLOITATION_M3.md).
+
+---
+
+# Historique — Correction après Verify : lecture dans le détail mobile
+
+10 novembre 2026. Changement `capture-et-gestion-des-taches`, schéma `spec-driven`. Correction unique autorisée par l’utilisateur après examen du Verify avec l’orchestrateur. **Correction terminée et contrôlée localement ; en attente de l’examen de l’orchestrateur et d’un nouveau Verify indépendant.** Aucun Verify, Archive, sous-agent, autre chat, commit ou push lancé dans cette reprise.
+
+## Cible et constat
+
+- État initial constaté : branche **main**, HEAD **c9c03dc12279532b4c2d3b151df27c3629e04fd4** (`Validate home usage and recovery milestone`), arbre propre. M1/M2 sont dans `3919a75`, M3 dans `c9c03dc` ; le handoff précommit plus bas est historique.
+- Résultat du Verify précédent **rapporté par l’orchestrateur** : WARNING « Erreur de lecture masquée dans le détail mobile ». L’alerte `loadFailed` et Réessayer étaient dans `.list-pane`, masqué sous 760 px lorsque le détail était ouvert. Même problème pour Chargement. Le constat concerne les scénarios « Chargement impossible » et « Service arrêté après ouverture ».
+- Confirmation propre à cette reprise : tests déterministes sur le build de `c9c03dc`, détail ouvert à **390×844**, GET en **503** puis réponse suspendue jusqu’au délai de 10 s. Les deux cas échouent sur la visibilité de l’alerte. Les mêmes cas à **1280×844** passent sur l’ancien code. Le script temporaire de reproduction `/tmp/mytodo-verify-mobile.mjs` a été lu, pas exécuté ; il ne sert pas de preuve nouvelle.
+
+## Correction et périmètre
+
+- [app/app.vue](../app/app.vue) : chargement, erreur et Réessayer déplacés dans une zone commune entre la capture et l’espace liste/détail, indépendante de `.list-pane`. Une seule occurrence de chaque message ; aucun état vide affiché pendant chargement/échec. Le détail reste ouvert et conserve sélection et brouillon. Aucun changement des handlers de lecture/écriture, du délai de 10 s, de la sérialisation, de `retry: 0`, de la capture ou du traitement des écritures incertaines.
+- [network-timeout.spec.ts](../tests/e2e/network-timeout.spec.ts) : quatre cas ajoutés (390/1280 px × 503/timeout). Vérifient chargement visible pour la réponse suspendue, erreur et Réessayer uniques et visibles, absence d’état vide, reprise explicite réussie, détail et brouillon préservés même si le titre relu change, saisie de capture préservée, aucune mutation par Entrée pendant la lecture et aucun retry automatique. Les cas préexistants couvrent toujours la liste et les autres parcours.
+- Ce [checkpoint](current.md) est le troisième fichier modifié. Aucun artefact OpenSpec ni case ajouté/modifié : CLI **20/20**, `all_done`, sans context/operationGuidance supplémentaire. Ces cases ne constituent pas la preuve de résolution ; les tests avant/après et le contrôle manuel ci-dessous la documentent.
+
+## Commandes et résultats observés maintenant
+
+| Commande / contrôle | Résultat de cette reprise |
+| --- | --- |
+| `openspec list --json`, `status --change capture-et-gestion-des-taches --json`, `instructions apply --change capture-et-gestion-des-taches --json` | Racine locale confirmée, spec-driven, 20/20, all_done ; documents requis et contextFiles relus. Aucune clôture déclenchée. |
+| `pnpm build` avant correction | Réussi sur les sources applicatives de `c9c03dc` pour la reproduction avant correction. |
+| `pnpm test:e2e tests/e2e/network-timeout.spec.ts --grep 'détail'` avant correction | **2 échecs mobile attendus**, 2 réussites ordinateur ; échecs sur `getByRole('alert').toBeVisible()`, pour 503 et timeout. |
+| `pnpm test` après correction | **40/40 Vitest**, 2 fichiers. |
+| `pnpm typecheck` après correction | Réussi sur interface, scripts et tests. |
+| `pnpm lint` après correction | Réussi sans avertissement. |
+| `pnpm build` après correction | Réussi ; avertissement de sourcemap Nuxt module-preload-polyfill toujours présent. |
+| `pnpm test:e2e` après correction | **27/27 Playwright** sur le serveur compilé final, boucle locale et base temporaire : 23 cas préexistants + 4 nouveaux cas. Les deux nouveaux cas mobile échoués avant correction passent après correction. |
+| Contrôle manuel navigateur intégré, serveur compilé `127.0.0.1:3102`, base jetable | Ajout d’une tâche jetable, détail à 390×844 et brouillon non enregistré. Arrêt réel du service puis Actualiser : erreur et Réessayer visibles au-dessus du détail, brouillon intact. Redémarrage sur la même base, Réessayer : chargement visible, puis détail et brouillon conservés. À 1280×900, liste et panneau visibles, titre serveur inchangé et brouillon distinct conservé. Viewport réinitialisé, onglet de contrôle fermé et serveur arrêté. |
+| `git diff --check`, liens locaux et blocs Markdown du checkpoint | Contrôlés sans erreur à la finalisation. |
+
+Les commandes à serveur de test et le contrôle manuel ont utilisé des bases jetables et des sockets **loopback uniquement**, avec l’autorisation d’exécution nécessaire hors sandbox. Aucun accès au LAN, aucun changement réseau/pare-feu, aucune donnée personnelle. `check:persistence` et `check:recovery` n’ont pas été relancés dans cette reprise : aucun code de persistance/récupération modifié ; leurs résultats M3 ci-dessous sont historiques. Aucun test tactile réel refait : les résultats Samsung A37/Chrome rapportés en M3 ne valident pas cette nouvelle correction visuelle.
+
+## Handoff pour le nouvel examen
+
+- Cible stable : **main**, HEAD **c9c03dc12279532b4c2d3b151df27c3629e04fd4**, modifications **non commitées** limitées à `app/app.vue`, `tests/e2e/network-timeout.spec.ts` et `runs/current.md`. Pas de migration, schéma, dépendance ou configuration d’exploitation modifiée.
+- Empreintes des sources validées : `app/app.vue` SHA-256 **91b4f40ac973917fab6a5404123f43c780cec77ec4d37a67169e3f23950651ca** ; `tests/e2e/network-timeout.spec.ts` SHA-256 **bcd2557c9e42af7ca9db17b342a371f5a0b52305910081bc490d732ad913e019**.
+- Artefacts à confronter : `openspec/changes/capture-et-gestion-des-taches/{proposal.md,design.md,tasks.md}`, `specs/task-management/spec.md` et `specs/home-network-access/spec.md`. Points précis : états de lecture dans liste/détail mobile, refus HTTP et délai expiré, reprise et brouillon, comportement ordinateur. Le nouveau Verify reste à organiser par l’orchestrateur ; le Verify précédent sur `c9c03dc` n’est pas un résultat sur ces modifications.
+- Preuves temporaires propres à cette reprise : `/tmp/mytodo-mobile-read-fix-error.png` (erreur et détail mobile), `/tmp/mytodo-mobile-read-fix-recovered.png` (reprise et brouillon en panneau ordinateur). Base jetable arrêtée : `/tmp/mytodo-mobile-read-fix-ZHOFlj/tasks.sqlite`. Les traces des tests avant correction peuvent avoir été remplacées par la suite finale ; leurs échecs sont consignés ci-dessus. Les fichiers `/tmp` ne sont pas des artefacts durables.
+- Aucun blocage local ni échec de check restant. Limites : nouveau Verify non exécuté, contrôle tactile de cette correction non réalisé, avertissement de sourcemap conservé. Attendre l’examen de l’orchestrateur ; aucune clôture automatique.
+
+---
+
+# Historique M3 — bilan avant commit et avant Verify
+
+Ce bilan a été rédigé avant le commit `c9c03dc` et le Verify précédent ; ses mentions de cible/non-commit décrivent cet état historique. Le statut courant est celui de la correction ci-dessus.
+
 # Checkpoint — M3 Valider l’usage au domicile
 
 9 novembre 2026. Changement `capture-et-gestion-des-taches`, schéma `spec-driven`. M3 (3.1–3.5) **terminé**, progression **20/20** ; CLI final `all_done`, cinq tâches M3 confirmées terminées. Base Git **main**, HEAD **3919a756ffc488cd888f03a888297293d1f8da7a** (`Implement task capture and management milestones`), arbre propre au démarrage. Modifications M3 non commitées. Les bilans M1/M2 conservés plus bas sont historiques : leurs mentions « non commité » ou « M3 non autorisé » ne décrivent plus l’état courant.

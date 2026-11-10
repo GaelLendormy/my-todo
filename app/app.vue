@@ -201,19 +201,21 @@ onMounted(reload)
         <p id="save-message" class="message" role="status">{{ message }}</p>
         <button v-if="uncertain" ref="rereadButton" type="button" class="secondary" :disabled="loading" @click="reload">Relire la liste avant de réessayer</button>
       </form>
+      <p v-if="loading" role="status" class="empty reading-state">Chargement des tâches…</p>
+      <div v-else-if="loadFailed" role="alert" class="empty reading-state">
+        <p>Impossible de charger les tâches. La liste n'est pas disponible.</p>
+        <button class="secondary" @click="reload">Réessayer le chargement</button>
+      </div>
       <div class="workspace" :class="{ 'has-detail': selected }">
         <div class="list-pane">
           <section class="task-section" aria-label="Tâches à faire" :aria-busy="loading">
             <div class="section-heading"><h2>À faire</h2><span v-if="!loadFailed && !loading">{{ active.length }}</span></div>
-            <p v-if="loading" role="status" class="empty">Chargement des tâches…</p>
-            <div v-else-if="loadFailed" role="alert" class="empty">
-              <p>Impossible de charger les tâches. La liste n'est pas disponible.</p>
-              <button class="secondary" @click="reload">Réessayer le chargement</button>
-            </div>
-            <div v-else-if="tasks.length === 0" class="empty"><p class="empty-title">L'esprit un peu plus libre.</p><p>Votre boîte de réception est vide. Ajoutez votre première tâche ci-dessus.</p></div>
-            <template v-else>
-              <TaskList v-if="active.length" :tasks="active" :disabled="blocked" @open="openDetail" @toggle="task => mutate(task, { completed: !task.completed })" />
-              <p v-else class="empty">Aucune tâche à faire.</p>
+            <template v-if="!loading && !loadFailed">
+              <div v-if="tasks.length === 0" class="empty"><p class="empty-title">L'esprit un peu plus libre.</p><p>Votre boîte de réception est vide. Ajoutez votre première tâche ci-dessus.</p></div>
+              <template v-else>
+                <TaskList v-if="active.length" :tasks="active" :disabled="blocked" @open="openDetail" @toggle="task => mutate(task, { completed: !task.completed })" />
+                <p v-else class="empty">Aucune tâche à faire.</p>
+              </template>
             </template>
           </section>
           <section v-if="!loading && !loadFailed" class="task-section" aria-label="Tâches terminées">
@@ -287,6 +289,7 @@ li { padding: 19px 20px; display: flex; align-items: flex-start; gap: 14px; line
 li + li { border-top: 1px solid #edf0f4; }
 li > span:last-child { min-width: 0; }
 .empty { text-align: center; color: #63718a; border: 1px dashed #d6dce5; border-radius: 12px; padding: 32px 20px; line-height: 1.6; }
+.reading-state { margin-top: 24px; }
 .empty-title { color: #35455f; font-weight: 600; }
 .footnote { color: #69768b; font-size: .8rem; line-height: 1.6; margin-top: 24px; }
 @media (max-width: 540px) {
