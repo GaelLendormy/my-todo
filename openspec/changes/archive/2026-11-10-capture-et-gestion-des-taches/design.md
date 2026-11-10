@@ -4,7 +4,7 @@
 
 Voir [proposal.md](proposal.md) pour le problème et le périmètre. Le dépôt ne contient que des documents et l'initialisation OpenSpec ; aucun code, schéma ou test applicatif n'est à migrer. Le runtime observé pendant la proposition est Node.js 24.14.0 avec pnpm 10.33.0 : leur présence ne prouve pas encore la compatibilité des dépendances à installer.
 
-Le design est nécessaire car ce changement crée l'interface, les API, la persistance et l'outillage. Il suit les [fondations](../../../documentation/PROJECT_FOUNDATION.md) et la [direction UI](../../../documentation/UI_DIRECTION.md), avec les précisions de scope validées dans la proposition.
+Le design est nécessaire car ce changement crée l'interface, les API, la persistance et l'outillage. Il suit les [fondations](../../../../documentation/PROJECT_FOUNDATION.md) et la [direction UI](../../../../documentation/UI_DIRECTION.md), avec les précisions de scope validées dans la proposition.
 
 ## Goals / Non-Goals
 

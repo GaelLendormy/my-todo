@@ -1,4 +1,19 @@
-# Checkpoint — Validation finale avant archivage
+# Checkpoint — Changement archivé
+
+10 novembre 2026. **`capture-et-gestion-des-taches` est archivé**, après résolution du WARNING Verify et confirmation utilisateur du test téléphone de la correction. Les bilans ci-dessous sont historiques.
+
+- Correction et validation finale enregistrées dans **`c42fa6c`** sur `main` ; code et tests identiques aux empreintes de la cible du recontrôle Verify. Aucun nouveau changement applicatif lors de l’archivage.
+- [Archive](../openspec/changes/archive/2026-11-10-capture-et-gestion-des-taches/tasks.md) : **20/20 tâches**, tous les artefacts terminés, métadonnées conservées.
+- Specs principales synchronisées : [gestion des tâches](../openspec/specs/task-management/spec.md) (**8 exigences, 18 scénarios**) et [accès au domicile](../openspec/specs/home-network-access/spec.md) (**4 exigences, 8 scénarios**). Purpose et blocs d’exigences repris sans modification des deltas ; seuls le titre et la section Requirements sont normalisés.
+- Validation stricte des deux specs principales et du changement réussie avant déplacement ; validation stricte des specs principales repassée après archivage. Les **47 liens locaux** du checkpoint, de l’archive et des specs sont valides, `git diff --check` réussi. Les liens relatifs vers la documentation sont ajustés dans l’archive.
+- Recontrôle Verify : **27/27 Playwright, 8/8 reproductions indépendantes**, types, lint et build réussis ; aucun constat restant. Test téléphone validé par l’utilisateur, sans nouvelle manipulation par l’orchestrateur. Aucun push effectué.
+- Pour l’usage quotidien, restent la configuration permanente du pare-feu et la première sauvegarde externe réelle vers `todo-backup` ; ces opérations ne sont pas réalisées par l’archivage. Voir le [protocole d’exploitation](../documentation/EXPLOITATION_M3.md).
+
+Aucun changement OpenSpec actif restant. Pour une nouvelle fonctionnalité, définir un nouveau changement ; conserver cette archive comme historique.
+
+---
+
+# Historique — Validation finale avant archivage
 
 10 novembre 2026. Changement `capture-et-gestion-des-taches` : **20/20 tâches terminées, correction validée et clôture autorisée par l’utilisateur**. Les bilans conservés plus bas décrivent leurs états historiques.
 
@@ -72,7 +87,7 @@ Ce bilan a été rédigé avant le commit `c9c03dc` et le Verify précédent ; s
 - [Interface](../app/app.vue) : correction observée en M3, délai maximal **10 secondes** sur GET/POST/PATCH/DELETE. `retry: 0`, sérialisation lecture/écriture et reprise explicite conservés. Une lecture sans réponse affiche l’échec ; une écriture sans réponse reste incertaine, saisie préservée, sans nouvelle écriture avant relecture explicite.
 - [Tests de délai réseau](../tests/e2e/network-timeout.spec.ts) : lecture suspendue puis reprise, création réellement écrite mais réponse suspendue, saisie conservée, aucune répétition automatique et tâche retrouvée par relecture. Les deux cas échouent sur l’ancien build puis passent après correction.
 - [Contrôle de récupération](../scripts/check-recovery.ts), commande `pnpm check:recovery` dans [package.json](../package.json) : crée deux tâches par HTTP (active et terminée), attend l’arrêt complet du serveur, copie le répertoire fermé vers une sauvegarde puis une restauration neuves, compare tous les champs par HTTP. Ignore la base du terminal et nettoie seulement son répertoire temporaire.
-- [Tâches OpenSpec](../openspec/changes/capture-et-gestion-des-taches/tasks.md) : cases 3.1–3.4 contrôlées à leurs lignes 40–43 avant modification et progrès confirmés à chaque fois par le CLI (17, 18, 19 et 16/20 respectivement, selon l’ordre d’exécution).
+- [Tâches OpenSpec](../openspec/changes/archive/2026-11-10-capture-et-gestion-des-taches/tasks.md) : cases 3.1–3.4 contrôlées à leurs lignes 40–43 avant modification et progrès confirmés à chaque fois par le CLI (17, 18, 19 et 16/20 respectivement, selon l’ordre d’exécution).
 
 ## Réseau, téléphone et décisions utilisateur
 
