@@ -1,8 +1,9 @@
 <script setup lang="ts">
+import { priorityLabels, isOverdue, displayCivilDate } from '#shared/task-selection'
 import type { Category } from '../../shared/types/category'
 import type { Task } from '../../shared/types/task'
 
-defineProps<{ tasks: Task[], categories: Category[], disabled: boolean }>()
+defineProps<{ tasks: Task[], categories: Category[], disabled: boolean, today: string }>()
 defineEmits<{ open: [task: Task], toggle: [task: Task] }>()
 </script>
 
@@ -13,6 +14,8 @@ defineEmits<{ open: [task: Task], toggle: [task: Task] }>()
       <div class="task-label">
       <button :id="`task-${task.id}`" class="task-title" @click="$emit('open', task)">{{ task.title }}</button>
       <p v-if="task.categoryId" class="task-category">{{ categories.find(category => category.id === task.categoryId)?.name ?? 'Catégorie indisponible — actualisez' }}</p>
+      <p v-if="task.priority" class="task-category">Priorité {{ priorityLabels[task.priority] }}</p>
+      <p v-if="task.dueDate" class="task-category">Date limite : <time :datetime="task.dueDate">{{ displayCivilDate(task.dueDate) }}</time><span v-if="isOverdue(task, today)" class="overdue"> — En retard</span></p>
       </div>
     </li>
   </ul>

@@ -29,8 +29,8 @@ try {
   const category = await fetch(`${server.origin}/api/categories`, { method: 'POST', headers, body: JSON.stringify({ name: 'Catégorie jetable' }) }).then(r => r.json()) as Category
   const renamedCategory = { ...category, name: 'Catégorie renommée persistante' }
   assert.equal((await fetch(`${server.origin}/api/categories/${category.id}`, { method: 'PATCH', headers, body: JSON.stringify({ name: renamedCategory.name }) })).status, 200)
-  const renamed = { ...created, title: 'Titre modifié persistant', completed: true, categoryId: category.id }
-  const patch = await fetch(`${server.origin}/api/tasks/${created.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: renamed.title, completed: true, categoryId: category.id }) })
+  const renamed = { ...created, title: 'Titre modifié persistant', completed: true, categoryId: category.id, priority: 'high', dueDate: '2024-02-29' }
+  const patch = await fetch(`${server.origin}/api/tasks/${created.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: renamed.title, completed: true, categoryId: category.id, priority: 'high', dueDate: '2024-02-29' }) })
   assert.equal(patch.status, 200)
   assert.deepEqual(await patch.json(), renamed)
   const deletedIds: string[] = []

@@ -1,3 +1,5 @@
+import type { TaskUpdate } from '../../shared/types/task'
+import { isCivilDate } from '../../shared/task-selection'
 import { randomUUID } from 'node:crypto'
 import { desc, eq } from 'drizzle-orm'
 import type { openDatabase } from '../db/database'
@@ -14,17 +16,25 @@ export function parseId(id: unknown): string {
   return id
 }
 
-export function parseUpdate(input: unknown): { title?: string, completed?: boolean, categoryId?: string | null } {
+export function parseUpdate(input: unknown): TaskUpdate {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw new InvalidTask('Modification invalide.')
   const keys = Object.keys(input)
-  if (!keys.length || keys.some(key => key !== 'title' && key !== 'completed' && key !== 'categoryId')) throw new InvalidTask('Propriété de modification invalide.')
-  const update: { title?: string, completed?: boolean, categoryId?: string | null } = {}
+  if (!keys.length || keys.some(key => key !== 'title' && key !== 'completed' && key !== 'categoryId' && key !== 'priority' && key !== 'dueDate')) throw new InvalidTask('Propriété de modification invalide.')
+  const update: TaskUpdate = {}
   if ('title' in input) update.title = parseCreation({ title: input.title }).title
   if ('completed' in input) {
     if (typeof input.completed !== 'boolean') throw new InvalidTask('État invalide.')
     update.completed = input.completed
   }
   if ('categoryId' in input) update.categoryId = input.categoryId === null ? null : parseId(input.categoryId)
+  if ('priority' in input) {
+    if (input.priority !== null && !['low', 'normal', 'high'].includes(input.priority as string)) throw new InvalidTask('Priorité invalide.')
+    update.priority = input.priority as TaskUpdate['priority']
+  }
+  if ('dueDate' in input) {
+    if (input.dueDate !== null && !isCivilDate(input.dueDate)) throw new InvalidTask('Date limite invalide : utilisez une date réelle YYYY-MM-DD.')
+    update.dueDate = input.dueDate as string | null
+  }
   return update
 }
 

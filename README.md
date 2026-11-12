@@ -1,6 +1,6 @@
 # My To Do
 
-Application personnelle Nuxt/Vue et SQLite. La capture et la gestion des tâches sont complétées par M1 « Classer et retrouver » : catégories libres et navigation directe. M2 de l’organisation (priorités, échéances et filtres) reste à implémenter sur autorisation. Les documents du [workflow](ai-workflow/GUIDE_NOUVEAU_PROJET.md), du [produit](documentation/PROJECT_BRIEF.md) et des [fondations](documentation/PROJECT_FOUNDATION.md) restent les références.
+Application personnelle Nuxt/Vue et SQLite. La capture et la gestion des tâches sont complétées par les catégories, priorités, dates limites et filtres combinables. Le contrôle tactile M2 a été validé par l'utilisateur le 12 novembre 2026 sur A37, Android et Chrome (versions non précisées). Les documents du [workflow](ai-workflow/GUIDE_NOUVEAU_PROJET.md), du [produit](documentation/PROJECT_BRIEF.md) et des [fondations](documentation/PROJECT_FOUNDATION.md) restent les références.
 
 ## Prérequis et installation
 
@@ -53,7 +53,7 @@ Ce réglage ne modifie pas le chemin de données : utiliser les variables ci-des
 | `MYTODO_ALLOWED_ORIGINS` | Origines complètes séparées par des virgules, sans barre finale. En production, aucune origine d'écriture n'est autorisée par défaut. La liste ne dépend jamais de l'en-tête Host. |
 | `HOST`, `PORT` | Adresse et port du serveur compilé. Utiliser `127.0.0.1` pour les contrôles locaux. |
 
-Les chemins publics (dont ceux atteints via des liens symboliques) sont refusés. La base personnelle doit être hors dépôt. Les fichiers SQLite et leurs annexes sont ignorés par Git ; ne pas y placer de données personnelles pour les tests. Les API ne mettent pas les tâches en cache (`no-store`) et refusent les mutations sans origine autorisée. Les créations et modifications exigent `Content-Type: application/json`. La création accepte le seul champ texte `title` ; `PATCH /api/tasks/:id` accepte `title`, le booléen `completed` et/ou `categoryId` (UUID de catégorie ou `null`). Les propriétés inconnues sont refusées. Une modification ne change que les champs soumis ; répéter un état cible ne le bascule pas. Une cible absente retourne 404 et ne peut pas être recréée par une modification tardive.
+Les chemins publics (dont ceux atteints via des liens symboliques) sont refusés. La base personnelle doit être hors dépôt. Les fichiers SQLite et leurs annexes sont ignorés par Git ; ne pas y placer de données personnelles pour les tests. Les API ne mettent pas les tâches en cache (`no-store`) et refusent les mutations sans origine autorisée. Les créations et modifications exigent `Content-Type: application/json`. La création accepte le seul champ texte `title` ; `PATCH /api/tasks/:id` accepte `title`, le booléen `completed`, `categoryId` (UUID de catégorie ou `null`), `priority` et/ou `dueDate` (contrats détaillés en M2). Les propriétés inconnues sont refusées. Une modification ne change que les champs soumis ; répéter un état cible ne le bascule pas. Une cible absente retourne 404 et ne peut pas être recréée par une modification tardive.
 
 Contrôle local reproductible sur données jetables, dans un même terminal :
 
@@ -87,7 +87,7 @@ Cliquer sur le titre ouvre le détail sans changer l'état : panneau à côté d
 
 **Supprimer la tâche** ouvre une confirmation portant le titre enregistré, avec **Annuler** et **Supprimer**. La suppression est définitive après confirmation du serveur, pour les tâches actives comme terminées. Tab et Maj+Tab restent dans cette confirmation ; Échap l'annule. Le focus revient au titre à la fermeture du détail, ou à un contrôle disponible si la tâche a quitté la liste.
 
-Les lectures et écritures sont coordonnées : aucune mutation ne part pendant une lecture, et aucune lecture pendant une écriture. Les cases et actions d'enregistrement attendent la confirmation serveur. Après un refus, la tâche reste inchangée à l'écran et la saisie est conservée. Après une réponse perdue, toutes les écritures attendent une **relecture explicite réussie** : vérifier le titre, l'état, le classement, les catégories et la présence de la tâche avant une nouvelle tentative. Aucun PATCH ni DELETE n'est répété automatiquement. Si la tâche n'existe plus après relecture, son détail se ferme. Une relecture échouée laisse la reprise obligatoire.
+Les lectures et écritures sont coordonnées : aucune mutation ne part pendant une lecture, et aucune lecture pendant une écriture. Les cases et actions d'enregistrement attendent la confirmation serveur. Après un refus, la tâche reste inchangée à l'écran et la saisie est conservée. Après une réponse perdue, toutes les écritures attendent une **relecture explicite réussie** : vérifier le titre, l'état, le classement, les catégories, la priorité, l’échéance et la présence de la tâche avant une nouvelle tentative. Aucun PATCH ni DELETE n'est répété automatiquement. Si la tâche n'existe plus après relecture, son détail se ferme. Une relecture échouée laisse la reprise obligatoire.
 
 Le PC et le service doivent rester démarrés. Aucun fonctionnement hors connexion ni synchronisation instantanée n'est promis. Le [protocole M3](documentation/EXPLOITATION_M3.md) décrit le lancement LAN, le préalable pare-feu, les essais sur vrai téléphone et la sauvegarde/restauration isolée ; les validations obtenues et encore ouvertes sont dans le [checkpoint](runs/current.md). Aucune exposition Internet n'est prévue. Le contrôle d'origine n'est pas une authentification : les appareils autorisés du réseau domestique auront accès aux tâches. L’utilisateur a choisi une sauvegarde mensuelle sur disque externe ; dans le dossier `todo-backup`. Le point de montage du disque devra être identifié avant la première copie réelle.
 
@@ -112,3 +112,23 @@ Les tâches et catégories sont relues ensemble et publiées seulement si les de
 Les deux ressources partagent la connexion et les contrôles d’origine, JSON et cache `no-store`. Entrée invalide : 400 ; ressource absente : 404 ; nom déjà utilisé : 409 ; indisponibilité : 503. POST `/api/tasks` continue d’accepter `{ title }` seul et retourne `categoryId: null`.
 
 La migration incrémentale **0001_categories** conserve `0000_tasks.sql` et toutes les tâches historiques ; leur `category_id` vaut initialement NULL. Les clés étrangères sont activées à chaque ouverture et `ON DELETE SET NULL` assure le déclassement. Avant toute migration personnelle, arrêter le service et sauvegarder une copie cohérente selon le [protocole d’exploitation](documentation/EXPLOITATION_M3.md). Exécuter `pnpm db:migrate` avec le chemin configuré, puis démarrer le binaire compatible. Aucun retour destructif automatique : restaurer une sauvegarde pré-migration avec sa version correspondante abandonne les changements postérieurs à la copie. Les checks du dépôt utilisent seulement des bases jetables.
+
+## Organisation M2 — priorités et échéances
+
+Dans le détail, choisir **Sans priorité** (défaut), **Basse**, **Normale** ou **Haute**, et une **Date limite** facultative. Enregistrer confirme les changements puis revient à la liste avec un message ; Annuler abandonne le brouillon. L'ajout rapide conserve le titre seul, sans hériter des filtres ou du classement.
+
+Les dates limites sont des dates civiles `YYYY-MM-DD`, sans heure ni conversion UTC. Une date passée est autorisée ; une date impossible est refusée atomiquement. L'échéance n'est pas un jour prévu et ne planifie aucune journée. Le retard concerne seulement les tâches non terminées dont l'échéance précède le jour local du navigateur. Ce jour est recalculé à minuit, au retour dans l'onglet et au retour du focus ; le fuseau de l'appareil consultant peut donc modifier le moment où apparaît le retard, sans changer la date enregistrée.
+
+**Toutes les tâches** permet de combiner catégorie, priorité et échéance par intersection. Toutes, Sans valeur, En retard, Aujourd'hui et Date précise sont des choix distincts ; une date précise est une égalité. Réinitialiser retrouve toutes les tâches. Les filtres restent au retour du détail et sont remis à zéro en entrant depuis une autre vue ; aucun filtre n'est conservé après rechargement. Les listes gardent leur ordre de création.
+
+La migration incrémentale `0002_task_importance.sql` ajoute `priority` et `due_date` nullables, en conservant tâches et catégories. Arrêter le service et sauvegarder sa base avant d'exécuter la commande `pnpm db:migrate` avec les variables du mode et du chemin voulus, puis redémarrer le service. Exemple **sur données jetables** :
+
+```bash
+M2_CHECK_DIR=$(mktemp -d /tmp/mytodo-m2-migration-XXXXXX)
+MYTODO_DATA_MODE=test MYTODO_DB_PATH="$M2_CHECK_DIR/tasks.sqlite" pnpm db:migrate
+MYTODO_DATA_MODE=test MYTODO_DB_PATH="$M2_CHECK_DIR/tasks.sqlite" pnpm db:migrate
+```
+
+GET/POST/PATCH des tâches retournent aussi `priority: 'low' | 'normal' | 'high' | null` et `dueDate: string | null`. PATCH accepte ces champs partiels : absent conserve la valeur, `null` la retire. Le serveur valide tous les champs avant une écriture unique ; l'interface n'envoie que ceux modifiés dans le brouillon. POST accepte toujours uniquement `{ title }`. Après résultat incertain, relire tâches **et** catégories avant de réessayer ; la relecture conserve le détail et tous ses champs sans produire de nouvel enregistrement.
+
+`pnpm check:persistence` et `pnpm check:recovery` vérifient aussi priorités et échéances sur des bases jetables. Une restauration doit utiliser une copie cohérente, réalisée service arrêté, et remplace l'état par celui de la sauvegarde : elle perd les modifications ultérieures. Le protocole de [sauvegarde/restauration](documentation/EXPLOITATION_M3.md) reste applicable ; aucune base personnelle ni configuration réseau n'est modifiée par ces checks.

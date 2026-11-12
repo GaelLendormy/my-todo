@@ -1,3 +1,83 @@
+# Checkpoint — Organisation des tâches, Verify terminé
+
+12 novembre 2026. Changement `organisation-des-taches`, **M1 et M2 validés, 18/18 tâches terminées**. L’utilisateur autorise l’actualisation documentaire, le commit M2 et l’archivage après restitution du Verify.
+
+- Verify effectué dans un chat neuf **GPT‑6.1 Sol / High**, `01a1cf48-244c-7140-b454-dd2788fcff34`, sur `main` à `df9c71fabe5bed1e2ac3708b06293792403e7e31` avec M2 non commité. M1 déjà commité a aussi été examiné : **17 exigences et 50 scénarios**, aucun CRITICAL ni WARNING, une suggestion documentaire.
+- Checks réellement relancés par le chat Verify : **82/82 Vitest, 60/60 Playwright**, typecheck, lint, build, persistance, récupération, validation OpenSpec stricte et `git diff --check` réussis. Les contrôles avec serveur ont réussi après autorisation hors sandbox ; l’avertissement historique de sourcemap Nuxt demeure. Aucune donnée personnelle ni configuration réseau modifiée.
+- Le contrôle tactile reste le résultat **rapporté par l’utilisateur** sur **A37, Android, Chrome**, le 12 novembre : « Tout passe ». Versions non précisées ; aucun agent n’a manipulé le téléphone. README et Développement reflètent désormais ce statut ; suggestion Verify traitée.
+- Aucun code applicatif modifié après Verify. Pour cette actualisation documentaire, seuls les checks documentaires et OpenSpec sont à repasser. Prochaine action autorisée : commit M2, synchronisation des specs principales puis archivage du changement.
+
+---
+
+# Historique — Organisation des tâches, implémentation validée
+
+12 novembre 2026. Changement `organisation-des-taches`. **M1 et M2 validés, 18/18 tâches terminées.** L'utilisateur confirme les essais tactiles M2 sur **A37, Android, Chrome** : « Tout passe ». La dernière case 2.8 est cochée après vérification de sa ligne et confirmation de la progression CLI. Aucun défaut signalé dans ce retour ; versions Android et Chrome non précisées.
+
+- La validation rapportée couvre la marche à suivre M2 proposée : priorités, sélecteur natif et effacement de date, annulation, filtres combinés et réinitialisation, retards/réalisation/réouverture, retour après Enregistrer, conservation du brouillon et reprise après coupure, contrôles tactiles et absence de débordement. Il s'agit du résultat annoncé par l'utilisateur, sans manipulation directe du téléphone ni nouvelle observation instrumentée par ce chat.
+- Les résultats techniques du chat d'implémentation restent ceux documentés ci-dessous : **82/82 Vitest, 60/60 Playwright, types, lint, build, persistance, récupération et migrations isolées réussis**. Ces suites ne sont pas relancées pour cette seule consignation documentaire. La validation OpenSpec stricte et `git diff --check` ont été repassés ; ils ne constituent pas un Verify final.
+- Cible de reprise : `main` sur **df9c71f**, avec modifications M2 non commitées, dont ce suivi et la dernière case. M1 est déjà commité. Aucun nouveau code, commit, push, Verify, Sync, Archive, autre chat, sous-agent ou changement réseau réalisé lors de cette consignation.
+- **Prochaine étape : OpenSpec Verify dans un contexte frais**, à partir du handoff ci-dessous et en tenant compte de cette validation tactile désormais reçue. Identifier la cible réelle avant vérification, distinguer les checks historiques des nouvelles preuves et traiter les constats avant clôture. Aucun nouveau chat créé automatiquement ni archivage déclenché.
+
+Les bilans et mentions de contrôles ouverts ci-dessous sont historiques ; le contrôle tactile M2 est désormais validé par l'utilisateur.
+
+---
+
+# Historique — M2 implémenté, contrôle tactile ouvert
+
+10 novembre 2026. Changement `organisation-des-taches`, schéma `spec-driven`. M2 « Repérer ce qui compte » explicitement autorisé dans ce chat après M1 validé et commité. **2.1–2.7 terminées ; 2.8 ouverte uniquement pour le contrôle tactile M2 sur vrai téléphone. Progression : 17/18.** Les mentions de M2 non autorisé plus bas sont historiques. Aucun sous-agent, autre chat, review indépendante, Verify, Sync, Archive, commit ou push lancé.
+
+## Cible et résultat
+
+Branche `main`, HEAD de départ **df9c71f** (« Implement task categorization milestone »), arbre propre à l'arrivée. M2 reste non commité dans le checkout partagé. Migration M1 et comportements validés préservés ; aucun schéma futur ni nouvelle dépendance. Seules des données jetables ont été utilisées ; aucune base personnelle, configuration réseau ou règle de pare-feu touchée.
+
+- [Migration 0002](../migrations/0002_task_importance.sql), [journal](../migrations/meta/_journal.json), [schéma](../server/db/schema.ts), [types](../shared/types/task.ts) : priorité nullable low/normal/high et date civile nullable ; SQL contraint les valeurs/formats, serveur valide aussi le calendrier grégorien (0001–9999). Bases vierges, montées depuis 0000 et M1 peuplées, associations, réapplication et réouverture couvertes. Les migrations 0000/0001 restent intactes.
+- [Métier](../server/domain/tasks.ts) : champs absents préservés, null retire, dates passées acceptées, refus atomiques ; création titre seul. Réponses API étendues sans modifier les routes/protections.
+- [Sélection pure](../shared/task-selection.ts), [jour local](../app/composables/useCivilToday.ts), [filtres](../app/components/TaskFilters.vue), [détail](../app/components/TaskDetail.vue), [lignes](../app/components/TaskList.vue), [assemblage](../app/app.vue) : quatre choix de priorité, date facultative/effaçable, En retard seulement pour les tâches actives, jour recalculé à minuit/retour d'onglet/focus. Aucune conversion UTC d'échéance. Filtres par intersection avant séparation active/terminée, ordre inchangé, réinitialisation et absence de résultat distinctes de liste vide/erreur. Capture toujours non classée et sans priorité/date, avec accès à la boîte si masquée par les filtres.
+- Enregistrer attend le serveur puis ferme le détail sur ordinateur/téléphone ; vue/filtres/Terminées conservés, focus sur ligne ou contrôle disponible et message de sortie de filtre. Sans changement : fermeture sans PATCH. Les brouillons enrichis restent ouverts pendant attente, refus, résultat incertain et relecture seule. Les champs inchangés ne sont pas envoyés même après une modification indépendante relue depuis un autre appareil. Sérialisation, délai 10 s et retry 0 de M1 conservés.
+- [Tests unitaires](../tests/importance.test.ts), [tests navigateur](../tests/e2e/importance.spec.ts), [persistance](../scripts/check-persistence.ts), [récupération](../scripts/check-recovery.ts), [README](../README.md#organisation-m2--priorités-et-échéances) et [développement](../documentation/DEVELOPPEMENT.md#organisation-des-tâches--m2) complétés.
+
+## Validations réellement exécutées ici
+
+| Commande / contrôle | Résultat sur M2 |
+| --- | --- |
+| `openspec list --json`, `status`, `instructions apply --change organisation-des-taches --json` | Racine locale, spec-driven et ready confirmés, contextFiles lus, aucun context/operationGuidance additionnel. Cases contrôlées au sourcePath avant modification, progression confirmée (13 puis 14/15/16/17). |
+| `node --version`, `pnpm --version` | 24.14.0 / 10.33.0. |
+| `pnpm test` final | **82/82**, quatre fichiers. M1 conservé ; 29 nouveaux cas migration, SQL, métier, calendrier, atomicité et sélection. |
+| `pnpm typecheck`, `pnpm lint` finaux | Réussis, application/scripts/tests, aucun avertissement lint. |
+| `pnpm build` | Réussi sur le code applicatif final ; avertissement historique de sourcemap Nuxt module-preload-polyfill. Log temporaire `/tmp/mytodo-m2-build.log`. Les changements suivants concernent uniquement tests, scripts de check et documentation. |
+| `pnpm test:e2e` final | **60/60** sur serveur compilé et base isolée port 3100. Les 52 cas antérieurs passent ; 8 cas M2 couvrent aussi mobile simulé, confirmation différée, champs partiels après relecture externe, maintien des filtres/Terminées, erreur et perte après vraie écriture, catégorie disparue, relecture partielle refusée, date/jour/focus sans écriture et brouillon conservé. |
+| `pnpm check:persistence` | Réussi port 3101 : priorités et dates relues après redémarrage, catégories et associations préservées puis déclassement actif/terminé ; pas de recréation tardive. |
+| `pnpm check:recovery` | Réussi port 3103 : copie service arrêté et restauration isolée ; titres/états/identifiants/catégories/associations/priorités/dates identiques par HTTP. |
+| Exemple README `pnpm db:migrate` deux fois | Deux réussites avec MYTODO_DATA_MODE=test et chemin neuf `/tmp/mytodo-m2-migration-*`. Cette même base jetable sert au contrôle manuel port 3104. |
+| Contrôle manuel navigateur intégré | Loopback 127.0.0.1:3104, navigateur intégré sur ordinateur : capture Entrée, ouverture, priorité au clavier Home/End, date civile, Enregistrer par Entrée, succès et focus sur ligne observés ; filtre En retard avec flèches ; changement d'échéance retire la tâche du filtre et revient à la capture avec message. Inspection **1280×900** puis **390×844**, filtres et détail, effacement de priorité/date, retour et relecture confirmés. Aucun débordement horizontal observé (largeur DOM 375, viewport 390). Aucun téléphone physique utilisé. Viewport réinitialisé et onglet fermé. |
+| `openspec validate organisation-des-taches --strict`, `git diff --check`, liens locaux | Réussis, liens des documents modifiés contrôlés. Il ne s'agit pas d'un OpenSpec Verify. |
+| Arrêt et sockets | Session manuelle arrêtée, scripts de check nettoient et arrêtent leurs serveurs. `ss -ltn` autorisé ne montre aucune écoute 3100/3101/3103/3104 en fin de contrôle. |
+
+Échecs intermédiaires distingués : sandbox IPC `EPERM` lors des premiers lancements Playwright, persistance et récupération ; relances avec autorisation réussies. Deux premières suites Playwright ont échoué sur des assertions nouvelles : valeur DOM de l'option null (« Sans priorité ») puis libellé Priorité ambigu entre filtre et détail ; correction des tests uniquement, parcours ciblés 2/2 puis suite finale 60/60. Lecture netlink initialement refusée, relancée avec autorisation. Warnings de couleurs Playwright sans effet sur les résultats. Aucun échec automatisé restant connu.
+
+## Seul contrôle restant — tâche 2.8
+
+Effectuer les essais **au toucher sur un vrai téléphone**, avec données jetables et accès déjà autorisé, puis consigner appareil, OS, navigateur/version, date et résultats. Les validations A37 de M1 ne couvrent pas M2. Vérifier :
+
+1. Changer et retirer la priorité ; sélectionner, changer et effacer une date avec le sélecteur natif ; enregistrer plusieurs champs et annuler un brouillon.
+2. Après Enregistrer confirmé, retour à la liste avec succès, filtres et Terminées conservés ; tâche quittant le filtre, retour utilisable ; sans changement, retour sans écriture.
+3. Combiner catégorie/priorité/échéance, Sans valeur, Aujourd'hui, En retard et Date précise ; réinitialiser, distinguer aucun résultat, conserver la capture sans héritage, entrer depuis une autre vue sans filtre caché.
+4. Retard actif, retrait après réalisation et réapparition à la réouverture ; brouillons et messages visibles en cas de refus, réponse perdue et relecture ; contrôles accessibles et absence de défilement horizontal.
+
+Il manque l'accès à un appareil physique, pas un contrôle automatisable supplémentaire. Ne pas cocher 2.8 sur la seule base des viewports. Aucune nouvelle exposition réseau demandée ou réalisée. Les serveurs sont arrêtés : préparer une instance jetable avec le code compilé M2 et sa migration, sans modifier de base personnelle ni de pare-feu.
+
+## Handoff pour Verify en contexte frais
+
+- Cible stable : `main` sur df9c71f + modifications M2 non commitées décrites ci-dessus. Relire Git, AGENTS et les instructions avant intervention ; ne pas écraser d'autres modifications. Aucun Verify exécuté ici.
+- Artefacts : `openspec/changes/organisation-des-taches/{proposal.md,design.md,tasks.md}`, `specs/task-management/spec.md`, `specs/task-organization/spec.md`. Documents : PROJECT_BRIEF, PROJECT_FOUNDATION, UI_DIRECTION, README, DEVELOPPEMENT et ce checkpoint. Seules les cases 2.1–2.7 ont changé parmi les artefacts.
+- Décisions à préserver : priorité null par défaut ; date civile locale sans UTC ; intersections stables ; capture sans héritage ; PATCH seulement des champs changés ; Enregistrer confirmé revient à la liste, aucune relecture seule ne vaut confirmation ; brouillon maintenu après échec/incertitude.
+- Suite : achever le contrôle tactile et consigner/cocher 2.8 si conforme, puis demander Verify en contexte frais sur une cible stable. Verify devra vérifier indépendamment cohérence, migrations et interactions, en distinguant les résultats ci-dessus et les preuves qu'il exécute. Pas de Sync/Archive automatique.
+- Limites : ergonomie du sélecteur natif de date sur téléphone encore inconnue ; jour de référence dépend du fuseau de l'appareil ; pas d'instantané interappareils ni synchronisation automatique ; restauration perd les changements postérieurs à la copie. Aucun défaut automatisé restant constaté. Bases temporaires et logs non garantis après redémarrage.
+
+---
+
+# Historique — M1 validé avant autorisation M2
+
 # Checkpoint — M1 validé
 
 10 novembre 2026. Changement `organisation-des-taches`. **M1 « Classer et retrouver » entièrement validé : 1.1–1.10 terminées, progression 10/18.** L'utilisateur confirme le test téléphone après la correction du retour à la liste. M2 « Repérer ce qui compte » reste non commencé et non autorisé.

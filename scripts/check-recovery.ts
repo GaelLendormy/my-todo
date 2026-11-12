@@ -27,7 +27,7 @@ try {
     assert.equal(response.status, 201)
     const task = await response.json() as Task
     const patch: Response = await fetch(`${server.origin}/api/tasks/${task.id}`, {
-      method: 'PATCH', headers, body: JSON.stringify({ completed: title.includes('terminée'), categoryId: category.id }),
+      method: 'PATCH', headers, body: JSON.stringify({ completed: title.includes('terminée'), categoryId: category.id, priority: title.includes('terminée') ? 'low' : 'high', dueDate: '2024-02-29' }),
     })
     assert.equal(patch.status, 200)
   }
@@ -37,6 +37,7 @@ try {
   const categoriesBefore = await fetch(`${server.origin}/api/categories`).then(r => r.json())
   assert.deepEqual(categoriesBefore, [category])
   assert.ok(before.every(task => task.categoryId === category.id))
+  assert.ok(before.every(task => task.dueDate === '2024-02-29' && task.priority === (task.completed ? 'low' : 'high')))
   await server.stop()
   server = undefined
   cpSync(join(directory, 'source'), backup, { recursive: true })
@@ -47,7 +48,7 @@ try {
   assert.equal(response.status, 200)
   assert.deepEqual(await response.json(), before)
   assert.deepEqual(await fetch(`${server.origin}/api/categories`).then(r => r.json()), categoriesBefore)
-  console.log('OK : service arrêté avant copie ; sauvegarde puis restauration isolée ; titres, états, identifiants, catégories et associations relus par HTTP identiques.')
+  console.log('OK : service arrêté avant copie ; sauvegarde puis restauration isolée ; titres, états, identifiants, catégories, associations, priorités et échéances relus par HTTP identiques.')
 }
 finally {
   await server?.stop()

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { Task } from '../shared/types/task'
+import { emptyFilters, selectTasks } from '#shared/task-selection'
+import type { TaskPriority, TaskUpdate, Task } from '../shared/types/task'
 
 const { requestTimeout, tasks, categories, loading, loadFailed, saving, uncertain, message, blocked, readResources, changeCategory } = useTaskResources()
 const title = ref('')
@@ -8,13 +9,18 @@ const selectedId = ref<string | null>(null)
 const selected = computed(() => tasks.value.find(task => task.id === selectedId.value))
 const draft = ref('')
 const draftCategory = ref<string | null>(null)
-const draftBase = ref<{ title: string, categoryId: string | null }>({ title: '', categoryId: null })
+const draftPriority = ref<TaskPriority>(null)
+const draftDueDate = ref('')
+const draftBase = ref<{ title: string, categoryId: string | null, priority: TaskPriority, dueDate: string | null }>({ title: '', categoryId: null, priority: null, dueDate: null })
+const today = useCivilToday()
+const filters = ref(emptyFilters())
+const hasFilters = computed(() => filters.value.category !== 'all' || filters.value.priority !== 'all' || filters.value.due !== 'all')
 const view = ref('inbox')
 const completedViews = reactive<Record<string, boolean>>({})
 const completedOpen = computed({ get: () => completedViews[view.value] ?? false, set: value => { completedViews[view.value] = value } })
 const currentCategory = computed(() => categories.value.find(c => c.id === view.value))
 const viewName = computed(() => view.value === 'inbox' ? 'Boîte de réception' : view.value === 'all' ? 'Toutes les tâches' : currentCategory.value?.name ?? 'Catégorie indisponible')
-const visibleTasks = computed(() => tasks.value.filter(task => view.value === 'all' || (view.value === 'inbox' ? task.categoryId === null : task.categoryId === view.value)))
+const visibleTasks = computed(() => view.value === 'all' ? selectTasks(tasks.value, filters.value, today.value) : tasks.value.filter(task => view.value === 'inbox' ? task.categoryId === null : task.categoryId === view.value))
 const active = computed(() => visibleTasks.value.filter(task => !task.completed))
 const completed = computed(() => visibleTasks.value.filter(task => task.completed))
 const unavailableCategory = computed(() => draftCategory.value !== null && !categories.value.some(c => c.id === draftCategory.value))
@@ -25,6 +31,7 @@ async function navigate(destination: string) {
   if (saving.value) return
   selectedId.value = null
   draft.value = ''
+  if (destination === 'all' && view.value !== 'all') filters.value = emptyFilters()
   view.value = destination
   categoryRename.value = currentCategory.value?.name ?? ''
   await nextTick()
@@ -72,9 +79,11 @@ function moveCategoryDialogFocus(event: KeyboardEvent) {
 }
 async function saveDetail() {
   if (blocked.value || !selected.value || unavailableCategory.value) return
-  const update: { title?: string, categoryId?: string | null } = {}
+  const update: TaskUpdate = {}
   if (draft.value !== draftBase.value.title) update.title = draft.value
   if (draftCategory.value !== draftBase.value.categoryId) update.categoryId = draftCategory.value
+  if (draftPriority.value !== draftBase.value.priority) update.priority = draftPriority.value
+  if ((draftDueDate.value || null) !== draftBase.value.dueDate) update.dueDate = draftDueDate.value || null
   if (!Object.keys(update).length) {
     message.value = 'Aucune modification à enregistrer.'
     await closeDetail()
@@ -107,7 +116,9 @@ async function openDetail(task: Task) {
   selectedId.value = task.id
   draft.value = task.title
   draftCategory.value = task.categoryId
-  draftBase.value = { title: task.title, categoryId: task.categoryId }
+  draftPriority.value = task.priority
+  draftDueDate.value = task.dueDate ?? ''
+  draftBase.value = { title: task.title, categoryId: task.categoryId, priority: task.priority, dueDate: task.dueDate }
   await nextTick()
   detailPanel.value?.focusTitle()
 }
@@ -141,7 +152,7 @@ function dismissDelete() {
   detailPanel.value?.focusDelete()
 }
 
-async function mutate(task: Task, update?: { title?: string, completed?: boolean, categoryId?: string | null }) {
+async function mutate(task: Task, update?: TaskUpdate) {
   if (blocked.value) return
   if (update?.title !== undefined && !update.title.trim()) {
     message.value = 'Le titre doit contenir du texte.'
@@ -157,6 +168,8 @@ async function mutate(task: Task, update?: { title?: string, completed?: boolean
       tasks.value = tasks.value.map(item => item.id === saved.id ? saved : item)
       if (update.title !== undefined) { draft.value = saved.title; draftBase.value.title = saved.title }
       if (update.categoryId !== undefined) { draftCategory.value = saved.categoryId; draftBase.value.categoryId = saved.categoryId }
+      if (update.priority !== undefined) { draftPriority.value = saved.priority; draftBase.value.priority = saved.priority }
+      if (update.dueDate !== undefined) { draftDueDate.value = saved.dueDate ?? ''; draftBase.value.dueDate = saved.dueDate }
       message.value = 'Modification enregistrée.'
       return true
     }
@@ -202,7 +215,7 @@ async function mutate(task: Task, update?: { title?: string, completed?: boolean
 async function reload() {
   const wasUncertain = uncertain.value
   if (await readResources()) {
-    if (wasUncertain) message.value = 'Liste relue. Vérifiez le titre, l’état, le classement et la présence de la tâche avant de soumettre à nouveau ; votre saisie est conservée.'
+    if (wasUncertain) message.value = 'Liste relue. Vérifiez le titre, l’état, le classement, la priorité, l’échéance et la présence de la tâche avant de soumettre à nouveau ; votre saisie est conservée.'
     await reconcileView()
     if (selectedId.value && !selected.value) {
       await closeDetail()
@@ -227,7 +240,7 @@ async function create() {
     })
     tasks.value = [created, ...tasks.value].sort((a, b) => b.createdAt - a.createdAt || b.id.localeCompare(a.id))
     title.value = ''
-    message.value = view.value === 'inbox' || view.value === 'all' ? 'Tâche enregistrée.' : 'Tâche enregistrée dans la Boîte de réception.'
+    message.value = view.value === 'inbox' || (view.value === 'all' && visibleTasks.value.some(task => task.id === created.id)) ? 'Tâche enregistrée.' : 'Tâche enregistrée dans la Boîte de réception.'
   }
   catch (error) {
     const status = (error as { response?: { status?: number } }).response?.status
@@ -284,12 +297,13 @@ onMounted(reload)
       </div>
       <div class="workspace" :class="{ 'has-detail': selected }">
         <div class="list-pane">
+          <TaskFilters v-if="view === 'all'" v-model="filters" :categories="categories" :disabled="saving" />
           <section class="task-section" aria-label="Tâches à faire" :aria-busy="loading">
             <div class="section-heading"><h2>À faire</h2><span v-if="!loadFailed && !loading">{{ active.length }}</span></div>
             <template v-if="!loading && !loadFailed">
-              <div v-if="visibleTasks.length === 0" class="empty"><p class="empty-title">L'esprit un peu plus libre.</p><p>{{ view === 'inbox' ? 'Votre boîte de réception est vide. Ajoutez votre première tâche ci-dessus.' : 'Cette vue ne contient aucune tâche.' }}</p></div>
+              <div v-if="visibleTasks.length === 0" class="empty"><p class="empty-title">{{ view === 'all' && hasFilters ? 'Aucun résultat pour ces filtres.' : "L’esprit un peu plus libre." }}</p><p>{{ view === 'all' && hasFilters ? 'Modifiez ou réinitialisez les filtres ci-dessus.' : view === 'inbox' ? 'Votre boîte de réception est vide. Ajoutez votre première tâche ci-dessus.' : 'Cette vue ne contient aucune tâche.' }}</p></div>
               <template v-else>
-                <TaskList v-if="active.length" :tasks="active" :categories="categories" :disabled="blocked" @open="openDetail" @toggle="task => mutate(task, { completed: !task.completed })" />
+                <TaskList v-if="active.length" :tasks="active" :categories="categories" :today="today" :disabled="blocked" @open="openDetail" @toggle="task => mutate(task, { completed: !task.completed })" />
                 <p v-else class="empty">Aucune tâche à faire.</p>
               </template>
             </template>
@@ -297,12 +311,12 @@ onMounted(reload)
           <section v-if="!loading && !loadFailed" class="task-section" aria-label="Tâches terminées">
             <button ref="completedButton" class="secondary" :aria-expanded="completedOpen" aria-controls="completed-list" @click="completedOpen = !completedOpen">Terminées ({{ completed.length }})</button>
             <div v-if="completedOpen" id="completed-list" class="completed-list">
-              <TaskList v-if="completed.length" :tasks="completed" :categories="categories" :disabled="blocked" @open="openDetail" @toggle="task => mutate(task, { completed: !task.completed })" />
+              <TaskList v-if="completed.length" :tasks="completed" :categories="categories" :today="today" :disabled="blocked" @open="openDetail" @toggle="task => mutate(task, { completed: !task.completed })" />
               <p v-else>Aucune tâche terminée.</p>
             </div>
           </section>
         </div>
-        <TaskDetail v-if="selected" ref="detailPanel" v-model:title="draft" v-model:category-id="draftCategory" :task="selected" :categories="categories" :blocked="blocked" :saving="saving" :unavailable="unavailableCategory" :in-view="visibleTasks.some(task => task.id === selected!.id)" @close="closeDetail" @save="saveDetail" @create-category="name => createCategory(name, true)" @delete="askDelete" />
+        <TaskDetail v-if="selected" ref="detailPanel" v-model:title="draft" v-model:category-id="draftCategory" v-model:priority="draftPriority" v-model:due-date="draftDueDate" :today="today" :task="selected" :categories="categories" :blocked="blocked" :saving="saving" :unavailable="unavailableCategory" :in-view="visibleTasks.some(task => task.id === selected!.id)" @close="closeDetail" @save="saveDetail" @create-category="name => createCategory(name, true)" @delete="askDelete" />
       </div>
       <dialog ref="confirmation" aria-labelledby="delete-heading" aria-describedby="delete-title" @keydown.tab.prevent="moveDialogFocus" @cancel.prevent="dismissDelete">
         <h2 id="delete-heading">Supprimer définitivement cette tâche ?</h2>
@@ -326,10 +340,11 @@ onMounted(reload)
 </template>
 
 <style>
+.overdue { color: #9b2435; font-weight: 650; }
 :root { font-family: system-ui, -apple-system, sans-serif; color: #263244; background: #f8f7f4; font-synthesis: none; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-button, input { font: inherit; }
+button, input, select { font: inherit; }
 button { min-height: 44px; padding: .65rem 1.1rem; border: 1px solid transparent; border-radius: .6rem; background: #285cc4; color: white; font-weight: 600; cursor: pointer; }
 button:hover { background: #204b9e; }
 button:disabled { opacity: .65; cursor: wait; }
@@ -347,7 +362,7 @@ h1 { margin: 0; font-size: clamp(1.7rem, 4vw, 2.2rem); font-weight: 650; letter-
 .capture { padding: 22px; background: white; border: 1px solid #e0e3e8; border-radius: 14px; box-shadow: 0 4px 16px #25344a05; position: sticky; top: 12px; z-index: 1; }
 label { display: block; font-size: .9rem; font-weight: 650; margin-bottom: 10px; }
 .capture-controls { display: flex; gap: 10px; }
-input { min-width: 0; flex: 1; width: 100%; border: 1px solid #c4cddb; border-radius: .6rem; padding: .7rem .85rem; color: inherit; background: #fff; }
+input, select { min-width: 0; flex: 1; width: 100%; border: 1px solid #c4cddb; border-radius: .6rem; padding: .7rem .85rem; color: inherit; background: #fff; }
 .message { font-size: .9rem; line-height: 1.5; margin: 10px 0 0; overflow-wrap: anywhere; }
 .message:empty { display: none; }
 .capture > button { margin-top: 12px; }
@@ -371,7 +386,7 @@ li > span:last-child { min-width: 0; }
   .eyebrow { font-size: .7rem; }
   .capture { padding: 16px; }
   .capture-controls { flex-direction: column; }
-  input { font-size: 16px; }
+  input, select { font-size: 16px; }
 }
 input[type="checkbox"] { flex: 0 0 24px; width: 24px; height: 24px; margin: 10px 0; accent-color: #285cc4; cursor: pointer; }
 .task-title { background: transparent; color: #263244; text-align: left; font-weight: 400; padding: .6rem .3rem; min-width: 0; overflow-wrap: anywhere; }
