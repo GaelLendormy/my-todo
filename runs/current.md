@@ -1,4 +1,19 @@
-# Checkpoint — Organisation des tâches, Verify terminé
+# Checkpoint — Organisation des tâches archivé
+
+12 novembre 2026. **Changement clos sur autorisation de l’utilisateur : M1 et M2 validés, 18/18 tâches terminées, Verify en contexte frais réussi.**
+
+- M1 : commit `df9c71f` ; M2 : commit `c285c10` (`Implement task priorities and due dates`). Aucun code applicatif modifié après le Verify. Les mentions de validation tactile ont été actualisées et la suggestion documentaire traitée.
+- [Archive](../openspec/changes/archive/2026-11-12-organisation-des-taches/tasks.md), schéma `spec-driven` : tous les artefacts terminés, 18/18 tâches, métadonnées conservées. Les liens relatifs ont été adaptés au déplacement ; les autres contenus archivés sont inchangés.
+- Specs principales synchronisées : [gestion des tâches](../openspec/specs/task-management/spec.md), **9 exigences et 26 scénarios**, avec Purpose et exigences non visées conservés ; [organisation des tâches](../openspec/specs/task-organization/spec.md), **11 exigences et 31 scénarios**, avec Purpose repris du delta. Comparaison de toutes les exigences du delta : aucune modification restante à intégrer. La spec d’accès au domicile reste inchangée.
+- Checks de clôture : validation OpenSpec stricte du changement avant archivage, validation stricte des **3 specs**, cibles des liens locaux sur **11 documents**, conservation du contenu archivé et `git diff --check` réussis. `openspec list --json` ne retourne plus de changement actif.
+- Preuves du Verify conservées ci-dessous : **82/82 Vitest, 60/60 Playwright**, types, lint, build, persistance et récupération réussis dans le chat neuf GPT‑6.1 Sol / High. Ces suites ne sont pas relancées pour les seuls changements documentaires de clôture. Validation tactile rapportée par l’utilisateur sur **A37, Android, Chrome**, versions non précisées.
+- Aucun push ni nouveau milestone lancé. Les limites d’exploitation historiques (pare-feu permanent et première sauvegarde externe réelle) restent décrites dans le [protocole d’exploitation](../documentation/EXPLOITATION_M3.md). Prochaine action : choisir avec l’utilisateur le prochain changement.
+
+Les sections suivantes conservent l’historique ; leurs mentions de contrôles ouverts et d’anciens chemins ne décrivent pas le statut courant.
+
+---
+
+# Historique — Organisation des tâches, Verify terminé
 
 12 novembre 2026. Changement `organisation-des-taches`, **M1 et M2 validés, 18/18 tâches terminées**. L’utilisateur autorise l’actualisation documentaire, le commit M2 et l’archivage après restitution du Verify.
 
@@ -106,7 +121,7 @@ Les bilans ci-dessous sont historiques et conservent leurs statuts au moment de 
 
 - [app.vue](../app/app.vue) : Enregistrer attend le retour positif de la mutation, puis ferme le détail et restaure le focus dans la liste d'origine. Si la tâche quitte la vue après classement, le message confirme l'enregistrement et explique son absence. Sans modification, retour sans PATCH avec message explicite. Pendant l'attente, après refus ou réponse perdue, le détail et le brouillon restent ouverts. Une relecture seule ne déclenche pas cette fermeture.
 - [Tests du retour](../tests/e2e/detail-save.spec.ts) : huit nouveaux cas couvrent titre et classement à 390/1280 px, confirmation différée, absence de changement sans écriture et erreurs sur mobile avec reprise. Les [parcours de gestion](../tests/e2e/management.spec.ts) et [d'organisation](../tests/e2e/organization.spec.ts) ont été adaptés au retour automatique tout en conservant les assertions de persistance, d'état, de brouillon et de champs partiels.
-- [Proposition](../openspec/changes/organisation-des-taches/proposal.md), [design](../openspec/changes/organisation-des-taches/design.md), [gestion](../openspec/changes/organisation-des-taches/specs/task-management/spec.md), [organisation](../openspec/changes/organisation-des-taches/specs/task-organization/spec.md) et [tâches](../openspec/changes/organisation-des-taches/tasks.md) reflètent le comportement demandé. La tâche 1.8 a été rouverte pour l'ajustement puis recochée après vérification de sa ligne et confirmation CLI.
+- [Proposition](../openspec/changes/archive/2026-11-12-organisation-des-taches/proposal.md), [design](../openspec/changes/archive/2026-11-12-organisation-des-taches/design.md), [gestion](../openspec/changes/archive/2026-11-12-organisation-des-taches/specs/task-management/spec.md), [organisation](../openspec/changes/archive/2026-11-12-organisation-des-taches/specs/task-organization/spec.md) et [tâches](../openspec/changes/archive/2026-11-12-organisation-des-taches/tasks.md) reflètent le comportement demandé. La tâche 1.8 a été rouverte pour l'ajustement puis recochée après vérification de sa ligne et confirmation CLI.
 - [README](../README.md) actualisé. Le [protocole d'exploitation](../documentation/EXPLOITATION_M3.md) distingue maintenant explicitement la préparation initiale avec `mktemp` de la simple commande de redémarrage conservant la base. Pas de changement de migration, API, schéma ou données personnelles dans cette correction.
 
 ## Checks réellement exécutés dans cette reprise

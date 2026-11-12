@@ -2,7 +2,7 @@
 
 Le périmètre et les deux milestones ont été validés dans la conversation. Cette proposition autorise uniquement la planification. Aucun milestone d'implémentation n'est autorisé à ce stade ; demander Apply sur un milestone identifié, effectuer ses validations et son bilan, puis attendre le feu vert pour le suivant.
 
-Références : [proposition](proposal.md), [design](design.md), [organisation](specs/task-organization/spec.md), [gestion](specs/task-management/spec.md), [Foundation](../../../documentation/PROJECT_FOUNDATION.md). Les cases ci-dessous suivent les tâches et validations réalisées. Utiliser uniquement des données jetables pour les checks.
+Références : [proposition](proposal.md), [design](design.md), [organisation](specs/task-organization/spec.md), [gestion](specs/task-management/spec.md), [Foundation](../../../../documentation/PROJECT_FOUNDATION.md). Les cases ci-dessous suivent les tâches et validations réalisées. Utiliser uniquement des données jetables pour les checks.
 
 ## 1. M1 — Classer et retrouver
 
