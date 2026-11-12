@@ -1,4 +1,4 @@
-import type { Task } from '../../shared/types/task'
+import type { StepUpdate, Task } from '../../shared/types/task'
 import type { Category } from '../../shared/types/category'
 import { sortCategories } from '#shared/category-names'
 
@@ -67,5 +67,35 @@ export function useTaskResources() {
     }
     finally { saving.value = false }
   }
-  return { requestTimeout, tasks, categories, loading, loadFailed, saving, uncertain, message, blocked, readResources, changeCategory }
+  async function changeStep(taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate) {
+    if (blocked.value) return false
+    saving.value = true
+    message.value = 'Enregistrement en cours…'
+    try {
+      const saved = await $fetch<Task>(`/api/tasks/${taskId}/steps${stepId ? `/${stepId}` : ''}`, {
+        method, body, retry: 0, timeout: requestTimeout,
+      })
+      const previous = tasks.value.find(task => task.id === taskId)
+      tasks.value = tasks.value.map(task => task.id === saved.id ? saved : task)
+      message.value = saved.completed !== previous?.completed
+        ? `Étape enregistrée. La tâche est ${saved.completed ? 'terminée' : 'rouverte'}. Son détail reste ouvert.`
+        : 'Étape enregistrée. Son détail reste ouvert.'
+      return true
+    }
+    catch (error) {
+      const status = (error as { response?: { status?: number } }).response?.status
+      if (status && status >= 400 && status < 500) {
+        message.value = status === 404
+          ? 'Cette tâche ou étape est absente. Actualisez ; votre saisie est conservée.'
+          : 'Modification d’étape refusée. Votre saisie est conservée.'
+      }
+      else {
+        uncertain.value = true
+        message.value = 'Résultat à vérifier : l’étape a peut-être été modifiée. Relisez la liste avant de réessayer ; votre saisie est conservée.'
+      }
+      return false
+    }
+    finally { saving.value = false }
+  }
+  return { requestTimeout, tasks, categories, loading, loadFailed, saving, uncertain, message, blocked, readResources, changeCategory, changeStep }
 }

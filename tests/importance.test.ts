@@ -72,7 +72,7 @@ it('valide le calendrier grégorien sans normalisation', () => {
   for (const date of ['0001-01-01', '2000-02-29', '2024-02-29', '1900-02-28', '9999-12-31']) expect(isCivilDate(date)).toBe(true)
 })
 it('sélection par intersection, valeurs absentes distinctes et ordre stable', () => {
-  const base: Task = { id: 'a', title: 'A', completed: false, createdAt: 1, categoryId: null, priority: null, dueDate: null }
+  const base: Task = { id: 'a', title: 'A', completed: false, createdAt: 1, steps: [], categoryId: null, priority: null, dueDate: null }
   const tasks: Task[] = [base, { ...base, id: 'b', categoryId: 'maison', priority: 'high', dueDate: '2026-11-09' }, { ...base, id: 'c', categoryId: 'maison', priority: 'high', dueDate: '2026-11-10' }, { ...base, id: 'd', completed: true, priority: 'high', dueDate: '2026-11-09' }, { ...base, id: 'e', dueDate: '2026-11-11' }]
   const filters = emptyFilters()
   const ids = (f = filters) => selectTasks(tasks, f, '2026-11-10').map(t => t.id)

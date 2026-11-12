@@ -2,7 +2,7 @@
 import { emptyFilters, selectTasks } from '#shared/task-selection'
 import type { TaskPriority, TaskUpdate, Task } from '../shared/types/task'
 
-const { requestTimeout, tasks, categories, loading, loadFailed, saving, uncertain, message, blocked, readResources, changeCategory } = useTaskResources()
+const { requestTimeout, tasks, categories, loading, loadFailed, saving, uncertain, message, blocked, readResources, changeCategory, changeStep } = useTaskResources()
 const title = ref('')
 const input = useTemplateRef('titleInput')
 const selectedId = ref<string | null>(null)
@@ -215,7 +215,7 @@ async function mutate(task: Task, update?: TaskUpdate) {
 async function reload() {
   const wasUncertain = uncertain.value
   if (await readResources()) {
-    if (wasUncertain) message.value = 'Liste relue. Vérifiez le titre, l’état, le classement, la priorité, l’échéance et la présence de la tâche avant de soumettre à nouveau ; votre saisie est conservée.'
+    if (wasUncertain) message.value = 'Liste relue. Vérifiez le titre, l’état, les étapes, le classement, la priorité, l’échéance et la présence de la tâche avant de soumettre à nouveau ; votre saisie est conservée.'
     await reconcileView()
     if (selectedId.value && !selected.value) {
       await closeDetail()
@@ -316,11 +316,11 @@ onMounted(reload)
             </div>
           </section>
         </div>
-        <TaskDetail v-if="selected" ref="detailPanel" v-model:title="draft" v-model:category-id="draftCategory" v-model:priority="draftPriority" v-model:due-date="draftDueDate" :today="today" :task="selected" :categories="categories" :blocked="blocked" :saving="saving" :unavailable="unavailableCategory" :in-view="visibleTasks.some(task => task.id === selected!.id)" @close="closeDetail" @save="saveDetail" @create-category="name => createCategory(name, true)" @delete="askDelete" />
+        <TaskDetail v-if="selected" :key="selected.id" ref="detailPanel" v-model:title="draft" v-model:category-id="draftCategory" v-model:priority="draftPriority" v-model:due-date="draftDueDate" :change-step="changeStep" :today="today" :task="selected" :categories="categories" :blocked="blocked" :saving="saving" :unavailable="unavailableCategory" :in-view="visibleTasks.some(task => task.id === selected!.id)" @close="closeDetail" @save="saveDetail" @create-category="name => createCategory(name, true)" @delete="askDelete" />
       </div>
       <dialog ref="confirmation" aria-labelledby="delete-heading" aria-describedby="delete-title" @keydown.tab.prevent="moveDialogFocus" @cancel.prevent="dismissDelete">
         <h2 id="delete-heading">Supprimer définitivement cette tâche ?</h2>
-        <p id="delete-title">{{ selected?.title }}</p>
+        <p id="delete-title">{{ selected?.title }}<span v-if="selected?.steps.length"> — Ses {{ selected.steps.length }} étapes seront également supprimées.</span></p>
         <div class="detail-actions">
           <button ref="cancelDelete" class="secondary" :disabled="saving" @click="dismissDelete">Annuler</button>
           <button class="danger" :disabled="blocked" @click="selected && mutate(selected)">{{ saving ? 'Suppression…' : 'Supprimer' }}</button>

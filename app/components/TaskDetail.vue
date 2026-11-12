@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { priorityLabels, isOverdue } from '#shared/task-selection'
-import type { TaskPriority, Task } from '../../shared/types/task'
+import type { StepUpdate, TaskPriority, Task } from '../../shared/types/task'
 import type { Category } from '../../shared/types/category'
-defineProps<{ task: Task, categories: Category[], blocked: boolean, saving: boolean, unavailable: boolean, inView: boolean, today: string }>()
+defineProps<{ task: Task, categories: Category[], blocked: boolean, saving: boolean, unavailable: boolean, inView: boolean, today: string, changeStep: (taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate) => Promise<boolean> }>()
 const title = defineModel<string>('title', { required: true })
 const categoryId = defineModel<string | null>('categoryId', { required: true })
 const priority = defineModel<TaskPriority>('priority', { required: true })
@@ -38,6 +38,7 @@ defineExpose({ focusTitle: () => titleInput.value?.focus(), focusDelete: () => d
         <button type="button" class="secondary" :disabled="saving" @click="$emit('close')">Annuler</button>
       </div>
     </form>
+    <TaskSteps :task="task" :blocked="blocked" :saving="saving" :change-step="changeStep" />
     <button ref="deleteButton" class="danger" :disabled="blocked" @click="$emit('delete')">Supprimer la tâche</button>
   </aside>
 </template>

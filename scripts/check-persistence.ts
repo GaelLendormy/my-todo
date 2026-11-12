@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { exerciseSteps } from './check-steps'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -29,14 +30,16 @@ try {
   const category = await fetch(`${server.origin}/api/categories`, { method: 'POST', headers, body: JSON.stringify({ name: 'Catégorie jetable' }) }).then(r => r.json()) as Category
   const renamedCategory = { ...category, name: 'Catégorie renommée persistante' }
   assert.equal((await fetch(`${server.origin}/api/categories/${category.id}`, { method: 'PATCH', headers, body: JSON.stringify({ name: renamedCategory.name }) })).status, 200)
-  const renamed = { ...created, title: 'Titre modifié persistant', completed: true, categoryId: category.id, priority: 'high', dueDate: '2024-02-29' }
+  let renamed: Task = { ...created, title: 'Titre modifié persistant', completed: true, categoryId: category.id, priority: 'high', dueDate: '2024-02-29' }
   const patch = await fetch(`${server.origin}/api/tasks/${created.id}`, { method: 'PATCH', headers, body: JSON.stringify({ title: renamed.title, completed: true, categoryId: category.id, priority: 'high', dueDate: '2024-02-29' }) })
   assert.equal(patch.status, 200)
   assert.deepEqual(await patch.json(), renamed)
+  renamed = await exerciseSteps(server.origin, renamed)
   const deletedIds: string[] = []
   for (const completed of [false, true]) {
     const task = await fetch(`${server.origin}/api/tasks`, { method: 'POST', headers, body: JSON.stringify({ title: 'Suppression jetable' }) }).then(r => r.json()) as Task
     if (completed) assert.equal((await fetch(`${server.origin}/api/tasks/${task.id}`, { method: 'PATCH', headers, body: JSON.stringify({ completed }) })).status, 200)
+    await exerciseSteps(server.origin, { ...task, completed })
     assert.equal((await fetch(`${server.origin}/api/tasks/${task.id}`, { method: 'DELETE', headers })).status, 204)
     deletedIds.push(task.id)
   }
@@ -57,7 +60,12 @@ try {
   const final = await fetch(`${server.origin}/api/tasks`).then(r => r.json()) as Task[]
   assert.deepEqual(final.find(task => task.id === renamed.id), { ...renamed, categoryId: null })
   assert.deepEqual(final.find(task => task.id === active.id), active)
-  console.log('OK : tâches, catégories renommées et associations persistent après redémarrage ; suppression de catégorie déclasse actives et terminées ; aucune recréation tardive.')
+  await server.stop()
+  server = undefined
+  const inspected = openDatabase(database)
+  try { assert.equal(inspected.sqlite.prepare('SELECT count(*) AS count FROM task_steps WHERE task_id NOT IN (SELECT id FROM tasks)').pluck().get(), 0) }
+  finally { inspected.close() }
+  console.log('OK : étapes (identités, titres, états, ordre), cascade, tâches, catégories renommées et associations persistent après redémarrage ; suppression de catégorie déclasse actives et terminées ; aucune recréation tardive.')
 }
 finally {
   await server?.stop()

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { check, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core'
+import { check, integer, sqliteTable, text, unique } from 'drizzle-orm/sqlite-core'
 
 export const categories = sqliteTable('categories', {
   id: text('id').primaryKey().notNull(),
@@ -23,4 +23,17 @@ export const tasks = sqliteTable('tasks', {
   check('priority_valid', sql`${table.priority} IS NULL OR ${table.priority} IN ('low', 'normal', 'high')`),
   check('due_date_valid', sql`${table.dueDate} IS NULL OR (length(${table.dueDate}) = 10 AND ${table.dueDate} GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')`),
   check('completed_valid', sql`${table.completed} IN (0, 1)`),
+])
+
+export const taskSteps = sqliteTable('task_steps', {
+  id: text('id').primaryKey().notNull(),
+  taskId: text('task_id').notNull().references(() => tasks.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  completed: integer('completed', { mode: 'boolean' }).notNull().default(false),
+  position: integer('position').notNull(),
+}, table => [
+  check('step_title_valid', sql`typeof(${table.title}) = 'text' AND length(trim(${table.title}, char(9,10,11,12,13,32,133,160,5760,8192,8193,8194,8195,8196,8197,8198,8199,8200,8201,8202,8232,8233,8239,8287,12288,65279))) > 0 AND instr(${table.title}, char(0)) = 0`),
+  check('step_completed_valid', sql`${table.completed} IN (0, 1)`),
+  check('step_position_valid', sql`typeof(${table.position}) = 'integer' AND ${table.position} >= 0`),
+  unique('step_task_position').on(table.taskId, table.position),
 ])

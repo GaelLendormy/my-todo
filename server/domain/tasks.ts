@@ -1,13 +1,15 @@
 import type { TaskUpdate } from '../../shared/types/task'
 import { isCivilDate } from '../../shared/task-selection'
 import { randomUUID } from 'node:crypto'
-import { desc, eq } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import type { openDatabase } from '../db/database'
+import { readTask, readTasks } from './task-reading'
 import { tasks } from '../db/schema'
 
 export class InvalidTask extends Error {}
 export class MissingTask extends Error {}
 export class MissingTaskCategory extends Error {}
+export class TaskHasSteps extends Error {}
 
 export function parseId(id: unknown): string {
   if (typeof id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
@@ -50,18 +52,23 @@ export function parseCreation(input: unknown): { title: string } {
 
 export function taskRepository(connection: ReturnType<typeof openDatabase>) {
   return {
-    list: () => connection.db.select().from(tasks).orderBy(desc(tasks.createdAt), desc(tasks.id)).all(),
+    list: () => connection.sqlite.transaction(() => readTasks(connection))(),
     update(id: unknown, input: unknown) {
       const target = parseId(id)
       const update = parseUpdate(input)
-      let saved
-      try { saved = connection.db.update(tasks).set(update).where(eq(tasks.id, target)).returning().get() }
-      catch (error) {
-        if ((error as { code?: string }).code === 'SQLITE_CONSTRAINT_FOREIGNKEY') throw new MissingTaskCategory('La catégorie choisie est absente. Actualisez puis remplacez-la dans votre brouillon.')
-        throw error
-      }
-      if (!saved) throw new MissingTask('Cette tâche est absente.')
-      return saved
+      return connection.sqlite.transaction(() => {
+        const current = readTask(connection, target)
+        if (!current) throw new MissingTask('Cette tâche est absente.')
+        if ('completed' in update && current.steps.length) throw new TaskHasSteps('La réalisation de cette tâche dépend de ses étapes.')
+        let saved
+        try { saved = connection.db.update(tasks).set(update).where(eq(tasks.id, target)).returning().get() }
+        catch (error) {
+          if ((error as { code?: string }).code === 'SQLITE_CONSTRAINT_FOREIGNKEY') throw new MissingTaskCategory('La catégorie choisie est absente. Actualisez puis remplacez-la dans votre brouillon.')
+          throw error
+        }
+        if (!saved) throw new MissingTask('Cette tâche est absente.')
+        return { ...saved, steps: current.steps }
+      }).immediate()
     },
     remove(id: unknown) {
       const target = parseId(id)
@@ -70,7 +77,8 @@ export function taskRepository(connection: ReturnType<typeof openDatabase>) {
     },
     create(input: unknown) {
       const { title } = parseCreation(input)
-      return connection.db.insert(tasks).values({ id: randomUUID(), title, completed: false, createdAt: Date.now() }).returning().get()
+      const saved = connection.db.insert(tasks).values({ id: randomUUID(), title, completed: false, createdAt: Date.now() }).returning().get()!
+      return { ...saved, steps: [] }
     },
   }
 }

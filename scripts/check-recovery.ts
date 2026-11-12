@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { exerciseSteps } from './check-steps'
 import { cpSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -30,7 +31,11 @@ try {
       method: 'PATCH', headers, body: JSON.stringify({ completed: title.includes('terminée'), categoryId: category.id, priority: title.includes('terminée') ? 'low' : 'high', dueDate: '2024-02-29' }),
     })
     assert.equal(patch.status, 200)
+    await exerciseSteps(server.origin, await patch.json() as Task)
   }
+  const doomed = await fetch(`${server.origin}/api/tasks`, { method: 'POST', headers, body: JSON.stringify({ title: 'Cascade jetable' }) }).then(r => r.json()) as Task
+  await exerciseSteps(server.origin, doomed)
+  assert.equal((await fetch(`${server.origin}/api/tasks/${doomed.id}`, { method: 'DELETE', headers })).status, 204)
   const before = await fetch(`${server.origin}/api/tasks`).then(r => r.json()) as Task[]
   assert.equal(before.length, 2)
   assert.equal(before.filter(task => task.completed).length, 1)
@@ -48,7 +53,12 @@ try {
   assert.equal(response.status, 200)
   assert.deepEqual(await response.json(), before)
   assert.deepEqual(await fetch(`${server.origin}/api/categories`).then(r => r.json()), categoriesBefore)
-  console.log('OK : service arrêté avant copie ; sauvegarde puis restauration isolée ; titres, états, identifiants, catégories, associations, priorités et échéances relus par HTTP identiques.')
+  await server.stop()
+  server = undefined
+  const inspected = openDatabase(restored)
+  try { assert.equal(inspected.sqlite.prepare('SELECT count(*) FROM task_steps WHERE task_id NOT IN (SELECT id FROM tasks)').pluck().get(), 0) }
+  finally { inspected.close() }
+  console.log('OK : étapes (identités, titres, états, ordre), cascade et cohérence parent ; service arrêté avant copie ; sauvegarde puis restauration isolée ; titres, états, identifiants, catégories, associations, priorités et échéances relus par HTTP identiques.')
 }
 finally {
   await server?.stop()

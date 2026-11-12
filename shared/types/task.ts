@@ -8,5 +8,15 @@ export interface Task {
   categoryId: string | null
   priority: TaskPriority
   dueDate: string | null
+  steps: TaskStep[]
   createdAt: number
 }
+
+export interface TaskStep {
+  id: string
+  taskId: string
+  title: string
+  completed: boolean
+  position: number
+}
+export type StepUpdate = Partial<Pick<TaskStep, 'title' | 'completed'>>

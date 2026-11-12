@@ -317,7 +317,7 @@ test('PATCH du brouillon conserve les modifications indépendantes relues', asyn
 })
 
 test('référence inconnue entre les lectures : jamais présentée Sans catégorie', async ({ page }) => {
-  await page.route('**/api/tasks', route => route.fulfill({ json: [{ id: '00000000-0000-4000-8000-000000000000', title: 'Référence entre lectures', categoryId: '00000000-0000-4000-8000-000000000001', completed: false, createdAt: 1 }] }))
+  await page.route('**/api/tasks', route => route.fulfill({ json: [{ id: '00000000-0000-4000-8000-000000000000', title: 'Référence entre lectures', categoryId: '00000000-0000-4000-8000-000000000001', completed: false, createdAt: 1, steps: [] }] }))
   await page.route('**/api/categories', route => route.fulfill({ json: [] }))
   await page.goto('/')
   await navigate(page, 'Toutes les tâches')

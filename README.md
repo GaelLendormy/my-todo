@@ -1,6 +1,6 @@
 # My To Do
 
-Application personnelle Nuxt/Vue et SQLite. La capture et la gestion des tâches sont complétées par les catégories, priorités, dates limites et filtres combinables. Le contrôle tactile M2 a été validé par l'utilisateur le 12 novembre 2026 sur A37, Android et Chrome (versions non précisées). Les documents du [workflow](ai-workflow/GUIDE_NOUVEAU_PROJET.md), du [produit](documentation/PROJECT_BRIEF.md) et des [fondations](documentation/PROJECT_FOUNDATION.md) restent les références.
+Application personnelle Nuxt/Vue et SQLite. La capture et la gestion des tâches sont complétées par les catégories, priorités, dates limites, filtres combinables et étapes manuelles. Le contrôle tactile M2 de l’organisation des tâches a été validé par l'utilisateur le 12 novembre 2026 sur A37, Android et Chrome (versions non précisées). Les documents du [workflow](ai-workflow/GUIDE_NOUVEAU_PROJET.md), du [produit](documentation/PROJECT_BRIEF.md) et des [fondations](documentation/PROJECT_FOUNDATION.md) restent les références.
 
 ## Prérequis et installation
 
@@ -132,3 +132,26 @@ MYTODO_DATA_MODE=test MYTODO_DB_PATH="$M2_CHECK_DIR/tasks.sqlite" pnpm db:migrat
 GET/POST/PATCH des tâches retournent aussi `priority: 'low' | 'normal' | 'high' | null` et `dueDate: string | null`. PATCH accepte ces champs partiels : absent conserve la valeur, `null` la retire. Le serveur valide tous les champs avant une écriture unique ; l'interface n'envoie que ceux modifiés dans le brouillon. POST accepte toujours uniquement `{ title }`. Après résultat incertain, relire tâches **et** catégories avant de réessayer ; la relecture conserve le détail et tous ses champs sans produire de nouvel enregistrement.
 
 `pnpm check:persistence` et `pnpm check:recovery` vérifient aussi priorités et échéances sur des bases jetables. Une restauration doit utiliser une copie cohérente, réalisée service arrêté, et remplace l'état par celui de la sauvegarde : elle perd les modifications ultérieures. Le protocole de [sauvegarde/restauration](documentation/EXPLOITATION_M3.md) reste applicable ; aucune base personnelle ni configuration réseau n'est modifiée par ces checks.
+
+## Étapes manuelles — M1 Décomposer et suivre
+
+M1 est validé, y compris le contrôle tactile rapporté par l’utilisateur le 12 novembre 2026 sur A37 avec Chrome (OS et versions non précisés dans ce retour). Les preuves et le statut du changement figurent dans le [checkpoint](runs/current.md).
+
+Dans le détail, **Nouvelle étape** puis **Ajouter une étape** enregistre une action à faire en fin de liste. **Renommer** ouvre une saisie avec son propre enregistrement et son annulation. Les étapes restent sur un seul niveau, dans leur ordre de création, qu’elles soient actives ou terminées. Les titres identiques sont permis. Le déplacement des étapes est réservé au milestone M2, encore non livré.
+
+Chaque case termine ou rouvre uniquement son étape. Avec des étapes, la liste et le détail affichent la progression ; aucune case globale ne réalise le parent. Toutes les étapes terminées rendent la tâche terminée ; rouvrir ou ajouter une étape rouvre la tâche, même si elle était déjà terminée. Supprimer une étape demande une confirmation portant son titre. Si des étapes restent, la réalisation du parent est recalculée ; supprimer la dernière conserve l’état du parent juste avant suppression et lui rend sa case manuelle. Supprimer le parent supprime toutes ses étapes, comme annoncé dans sa confirmation.
+
+Les opérations d’étapes gardent le détail ouvert et **n’enregistrent pas le formulaire parent**. Enregistrer le parent garde son fonctionnement habituel. Retour, Annuler et Échap abandonnent les brouillons non soumis ; ils conservent les étapes déjà confirmées. Les brouillons d’ajout et de renommage survivent aux erreurs et relectures, mais pas à la fermeture du détail. Une cible disparue après relecture laisse le texte de renommage consultable sans permettre sa soumission ni recréer l’étape.
+
+Après un résultat incertain, toutes les mutations (tâches, étapes et catégories) attendent une relecture complète des tâches enrichies et des catégories. Vérifier aussi les identifiants, titres, états et ordre des étapes avant de décider d’une nouvelle soumission. Aucun ajout, PATCH ou DELETE n’est répété automatiquement.
+
+La migration additive [0003_task_steps.sql](migrations/0003_task_steps.sql) conserve les tâches et catégories existantes, sans créer d’étapes historiques. Elle s’applique explicitement avec `pnpm db:migrate`, comme dans l’exemple jetable ci-dessus. Pour une base personnelle, suivre d’abord le [protocole de sauvegarde et migration](documentation/EXPLOITATION_M3.md), sur demande explicite ; les validations de développement n’y accèdent jamais.
+
+| API étapes M1 | Corps et résultat |
+| --- | --- |
+| POST `/api/tasks/:id/steps` | `{ title }` seul ; 201, tâche complète |
+| PATCH `/api/tasks/:id/steps/:stepId` | `title` et/ou booléen `completed` ; 200, tâche complète |
+| DELETE `/api/tasks/:id/steps/:stepId` | Sans corps ; **200**, tâche complète après suppression |
+| DELETE `/api/tasks/:id` | Sans corps ; **204**, parent et étapes supprimés |
+
+Chaque tâche expose `steps: []` si elle est simple, sinon un tableau ordonné de `{ id, taskId, title, completed, position }`. PATCH du parent contenant `completed` est refusé en **409 `TASK_HAS_STEPS`** dès qu’il possède des étapes, sans appliquer les autres champs soumis. Les autres champs du parent restent modifiables par PATCH partiel. Entrée invalide : 400 ; tâche/étape absente ou étape d’un autre parent : 404 ; service indisponible : 503. Origine obligatoire, JSON pour POST/PATCH et cache `no-store` restent applicables.

@@ -1,3 +1,80 @@
+# Checkpoint — Étapes manuelles, M1 validé
+
+12 novembre 2026. Changement `etapes-manuelles-des-taches`, schéma `spec-driven`. **M1 « Décomposer et suivre » validé : 1.1–1.10 terminées**, après correction du débordement de confirmation et validation tactile rapportée par l’utilisateur. Progression globale **10/16**, M1 **10/10**, M2 **0/6**. Prochaine étape : attendre l’autorisation explicite de M2 « Réordonner les étapes ».
+
+## Validation tactile rapportée par l’utilisateur
+
+- Retour reçu le 12 novembre 2026 : **« A37 chrome tout est ok »**, en réponse au protocole mobile en sept points fourni après correction. Appareil annoncé : **A37** ; navigateur : **Chrome**. OS et versions non précisés dans ce retour.
+- L’utilisateur valide ajout et renommage/annulation, progression et réalisation indépendante, ajout rouvrant le parent, suppressions et retour à une tâche simple dans les deux états, confirmation avec très long titre, brouillons indépendants, ergonomie clavier/toucher et relecture téléphone/PC. Aucun défaut signalé. Ces résultats sont rapportés par l’utilisateur ; aucun agent n’a manipulé le téléphone.
+- La tâche 1.10 est cochée sur la base de ce retour. Aucun code modifié lors de cette consignation ; les suites applicatives ne sont pas relancées pour ces seuls changements documentaires. Les preuves de la passe M1 et du correctif restent détaillées ci-dessous.
+- M2 reste non autorisé et non commencé. Aucun commit, push, Verify final ou archivage lancé lors de cette mise à jour.
+
+Les sections suivantes conservent les preuves d’implémentation et le protocole initial ; leurs mentions de 1.10 ouverte et de progression 9/16 décrivent l’état avant ce retour utilisateur.
+
+## Correction M1 après évaluation — confirmation d’étape à titre très long
+
+12 novembre 2026, même chat Apply. Défaut signalé par le coordinateur puis reproduit ici sur le build réel et données jetables : `ActionSansEspace` répété 40 fois débordait du heading de confirmation.
+
+- [TaskSteps.vue](../app/components/TaskSteps.vue) : heading générique, titre intégral dans un paragraphe `step-delete-title` référencé par `aria-describedby`. Le paragraphe reprend les règles existantes `dialog p` : `overflow-wrap: anywhere`, `max-height: 45vh`, `overflow-y: auto`. Aucun changement aux handlers de focus, Échap, Annuler ou suppression.
+- [Régression Playwright](../tests/e2e/steps.spec.ts) : 390×844 et 1280×844 ; titres sans espaces de 600 et 6000 caractères. Mesure du scrollWidth/clientWidth, hauteur du dialogue et du texte, boutons dans le viewport et atteignables à leur centre ; titre complet et description accessible ; focus initial, boucle Tab, Échap, Annuler, suppression réelle et focus final contrôlés.
+
+| Viewport | Avant, titre 600 caractères : scrollWidth/clientWidth | Après, 600 caractères | Après, 6000 caractères |
+| --- | --- | --- | --- |
+| 390×844 | **5735/350 px**, test échoué | **350/350 px**, hauteur dialogue 676,58 px | **350/350 px**, hauteur dialogue 676,58 px |
+| 1280×844 | **5735/478 px**, test échoué | **478/478 px**, hauteur dialogue 538,78 px | **478/478 px**, hauteur dialogue 632,58 px |
+
+Les boutons Annuler/Supprimer restent visibles et accessibles dans les quatre cas ; le texte de 6000 caractères défile verticalement dans sa zone bornée sans agrandir le dialogue au-delà du viewport. Le titre de 600 caractères tient entièrement sur ordinateur sans défilement vertical nécessaire.
+
+Contrôles réellement exécutés pour ce correctif :
+
+- Avant correction : `pnpm test:e2e --grep 'confirmation titre très long'` → **2/2 échecs attendus** sur la largeur interne.
+- Après correction : `pnpm typecheck`, `pnpm lint` → réussis, lint sans avertissement ; `pnpm build` → réussi avec l’avertissement de sourcemap Nuxt préexistant.
+- `pnpm test:e2e --grep 'confirmation titre très long|étapes .*décomposer|confirmation au clavier'` → **8/8 réussis** sur le build corrigé : quatre cas longs, deux parcours étapes et deux confirmations parent historiques. Une attente de test initiale exigeait à tort du défilement vertical même lorsque le texte tenait sur ordinateur ; elle a été limitée au titre de 6000 caractères avant cette passe finale.
+- `git diff --check` → réussi. Les autres suites complètes et scripts de persistance/restauration n’ont pas été répétés pour ce correctif de présentation ; leurs résultats M1 ci-dessous restent datés de la passe initiale.
+
+Seuls le composant, le fichier de tests et ce checkpoint ont été modifiés pour la correction. Les serveurs temporaires étaient exclusivement ceux du runner Playwright, arrêté en fin de chaque passe avec nettoyage de ses données. Aucun serveur manuel supplémentaire lancé, aucun changement réseau ou de base personnelle. Aucun nouveau contrôle manuel/tactile dans cette correction ; **1.10 reste ouverte**, M2 non autorisé, progression inchangée **9/16**.
+
+## Résultat et fichiers utiles
+
+- [Migration 0003](../migrations/0003_task_steps.sql), journal, [schéma](../server/db/schema.ts), [types](../shared/types/task.ts) : table dédiée, FK cascade, titre/état/position contraints, unicité par parent ; aucune étape historique.
+- [Domaine étapes](../server/domain/task-steps.ts), [lectures](../server/domain/task-reading.ts), [tâches](../server/domain/tasks.ts) et routes sous `server/api/tasks/[id]/steps/` : ajout, renommage, état cible idempotent et suppression transactionnels. Progression parent calculée, ajout rouvrant, suppression de dernière étape conservant l’état, compactage stable. PATCH parent contenant completed refusé intégralement en 409 TASK_HAS_STEPS. Lectures cohérentes, steps toujours présent, absence de recréation tardive.
+- [TaskSteps](../app/components/TaskSteps.vue), [TaskDetail](../app/components/TaskDetail.vue), [TaskList](../app/components/TaskList.vue), [ressources](../app/composables/useTaskResources.ts), [app](../app/app.vue) : commandes séparées du formulaire parent, progression sans case globale, confirmations avec titre/focus, détail maintenu après mutation, brouillons conservés après erreurs/relectures et abandonnés à la fermeture. Résultat incertain bloquant toutes les écritures jusqu’à relecture complète. Aucun contrôle/API de réordonnancement M2.
+- Tests [SQLite](../tests/steps.test.ts), [API](../tests/e2e/steps-api.spec.ts), [parcours](../tests/e2e/steps.spec.ts), fixtures historiques enrichies sans relâcher les assertions ; scripts [persistance](../scripts/check-persistence.ts), [restauration](../scripts/check-recovery.ts) et scénario partagé [étapes](../scripts/check-steps.ts). [README](../README.md) et [Développement](../documentation/DEVELOPPEMENT.md) décrivent gestes, migration, contrats et reprises.
+
+## Vérifications réellement exécutées dans ce chat
+
+| Commande / contrôle | Résultat |
+| --- | --- |
+| `openspec list --json`, `status`, `instructions apply --change etapes-manuelles-des-taches --json` | Racine locale, spec-driven, ready ; artefacts et références lus. Aucune instruction context/operationGuidance additionnelle retournée. Progression contrôlée après chaque case. |
+| `pnpm test` | 101/101 tests Vitest : historique et 19 cas étapes, migrations vierge/0000/0002, réapplication/réouverture, contraintes, champs préservés, transitions, rollback par triggers, deux connexions/processus concurrents. |
+| `pnpm typecheck` | Réussi (Nuxt et outils/tests). |
+| `pnpm lint` | Réussi sans avertissement sur les sources finales. |
+| `pnpm build` | Réussi ; avertissement de sourcemap Nuxt module-preload-polyfill préexistant. |
+| `pnpm test:e2e` | 67/67 cas réussis sur build à jour : 60 historiques et 7 nouveaux API/parcours étapes. Viewports 390 et 1280 px ; progression, transitions, confirmations et focus, brouillons, GET différé, double soumission, refus certain, réponse perdue après écriture réelle avec délai 10 s, relecture partielle et cible disparue, sortie du filtre En retard et maintien de Terminées. |
+| `pnpm check:persistence` | Réussi : identités, titres, états et ordre des étapes, cohérence parent, catégories/champs et cascade après redémarrages. Base temporaire créée/nettoyée par le script. |
+| `pnpm check:recovery` | Réussi : arrêt avant copie, sauvegarde/restauration isolée, relecture HTTP identique des tâches/étapes/catégories, absence d’orphelins. |
+| Exemple README : `pnpm db:migrate` deux fois puis `HOST=127.0.0.1 PORT=3102 pnpm start` | Deux migrations réussies, serveur compilé démarré sur une nouvelle base `/tmp/mytodo-steps-manual-*`, mode test et origine 127.0.0.1:3102. Aucune donnée personnelle. |
+| Contrôle manuel navigateur intégré, 1280×900 puis 390×844 | Capture par Entrée, ouverture détail, ajout et renommage d’étape avec brouillon parent conservé ; réalisation/réouverture par Espace, progression et passage en Terminées avec détail ouvert, focus visible sur case après confirmation. Ajout contenant NUL refusé avec message et saisie conservée. Suppression : titre dans confirmation, focus initial Annuler, Tab vers Supprimer puis boucle vers Annuler, Échap annule et restaure le focus sans fermer le détail. Retour puis réouverture : titre parent d’origine, étape renommée conservée, brouillon ajout abandonné. Rendu mobile inspecté, aucun débordement horizontal observé. Capture de contrôle `/tmp/mytodo-m1-etapes-desktop.jpg` ; viewport réinitialisé et onglet fermé. La suppression effective a été vérifiée par Playwright, pas réalisée manuellement dans ce parcours. |
+
+Échecs intermédiaires corrigés : lancement Playwright bloqué par EPERM sur socket tsx en sandbox, puis relancé avec autorisation ; type des en-têtes de tests et du résultat du script corrigés ; un sélecteur Priorité ambigu entre filtre et détail précisé (première passe 65/66, dernière 67/67). Ordre d’attributs Vue corrigé (dernier lint sans avertissement). Avertissements NO_COLOR/FORCE_COLOR de Playwright sans échec associé.
+
+`openspec validate etapes-manuelles-des-taches --strict`, `git diff --check` et contrôle des cibles de liens locaux des documents modifiés : réussis. Markdown relu ; aucun lien local manquant détecté. Serveur de contrôle manuel arrêté par Ctrl+C après fermeture de l’onglet. Les données de cette démonstration restent uniquement dans son répertoire temporaire ; aucune installation personnelle modifiée.
+
+## Historique — protocole tactile avant validation de la tâche 1.10
+
+Aucun téléphone réel n’est accessible depuis ce chat. Ne pas confondre le viewport mobile avec un essai tactile. Utiliser uniquement une instance de test déjà autorisée et accessible au téléphone, avec une base jetable ; ne pas modifier le pare-feu, le service système ni la base personnelle dans ce milestone.
+
+1. Consigner date, appareil, OS/version et navigateur/version, ainsi que la personne ayant observé le test (observation directe ou rapportée).
+2. Créer une tâche simple par ajout rapide ; ouvrir son détail. Saisir un brouillon parent puis ajouter deux étapes, dont un titre long ; vérifier clavier logiciel, boutons accessibles et absence de défilement horizontal.
+3. Renommer une étape, annuler une autre saisie, terminer puis rouvrir les étapes au toucher ; vérifier progression, état parent et détail conservé quand il quitte la section active. Aucun bouton de réalisation globale du parent.
+4. Terminer toutes les étapes puis en ajouter une : parent rouvert, anciennes étapes terminées. Confirmer/annuler la suppression avec titre ; supprimer la seule étape active parmi les terminées, puis la dernière terminée (parent simple terminé). Refaire sur une dernière étape active (parent simple actif) ; vérifier la case parent redevenue utilisable.
+5. Modifier le parent sans l’enregistrer puis confirmer une étape. Retour/Annuler : étape conservée, brouillon parent et ajout/renommage non soumis abandonnés. Actualiser et relire depuis le PC ; vérifier titres, états et ordre de création.
+6. Vérifier ajout rapide toujours accessible, clavier ne masquant pas durablement les commandes, confirmation/annulation au toucher et absence de débordement. Reporter précisément les anomalies ; cocher 1.10 uniquement après résultat réellement observé ou rapporté.
+
+Après évaluation du bilan M1 et contrôle tactile, attendre l’autorisation explicite de M2. Verify final du changement entier reste ultérieur, en contexte neuf. Les états antérieurs ci-dessous sont historiques.
+
+---
+
 # Checkpoint — Organisation des tâches archivé
 
 12 novembre 2026. **Changement clos sur autorisation de l’utilisateur : M1 et M2 validés, 18/18 tâches terminées, Verify en contexte frais réussi.**
