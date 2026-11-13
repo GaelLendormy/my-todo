@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import type { Task } from '../shared/types/task'
 
-// Real HTTP operations on the caller's disposable server only; no reorder API.
+// Real HTTP operations on the caller's disposable server only.
 export async function exerciseSteps(origin: string, parent: Task) {
   const headers = { 'Content-Type': 'application/json', 'Origin': origin }
   const url = `${origin}/api/tasks/${parent.id}/steps`
@@ -20,5 +20,7 @@ export async function exerciseSteps(origin: string, parent: Task) {
   current = await write(`${url}/${removed.id}`, 'DELETE')
   if (parent.completed) current = await write(`${url}/${last.id}`, 'PATCH', { completed: true })
   assert.deepEqual(current, { ...parent, steps: [{ ...first, title: 'Première renommée', completed: true }, { ...last, position: 1, completed: parent.completed }] })
+  current = await write(`${url}/order`, 'PATCH', { stepId: last.id, direction: 'up', expectedOrder: current.steps.map(step => step.id) })
+  assert.deepEqual(current, { ...parent, steps: [{ ...last, position: 0, completed: parent.completed }, { ...first, title: 'Première renommée', completed: true, position: 1 }] })
   return current
 }

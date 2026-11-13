@@ -137,7 +137,7 @@ GET/POST/PATCH des tâches retournent aussi `priority: 'low' | 'normal' | 'high'
 
 M1 est validé, y compris le contrôle tactile rapporté par l’utilisateur le 12 novembre 2026 sur A37 avec Chrome (OS et versions non précisés dans ce retour). Les preuves et le statut du changement figurent dans le [checkpoint](runs/current.md).
 
-Dans le détail, **Nouvelle étape** puis **Ajouter une étape** enregistre une action à faire en fin de liste. **Renommer** ouvre une saisie avec son propre enregistrement et son annulation. Les étapes restent sur un seul niveau, dans leur ordre de création, qu’elles soient actives ou terminées. Les titres identiques sont permis. Le déplacement des étapes est réservé au milestone M2, encore non livré.
+Dans le détail, **Nouvelle étape** puis **Ajouter une étape** enregistre une action à faire en fin de liste. **Renommer** ouvre une saisie avec son propre enregistrement et son annulation. Les étapes restent sur un seul niveau, dans leur ordre enregistré, qu’elles soient actives ou terminées. Les titres identiques sont permis.
 
 Chaque case termine ou rouvre uniquement son étape. Avec des étapes, la liste et le détail affichent la progression ; aucune case globale ne réalise le parent. Toutes les étapes terminées rendent la tâche terminée ; rouvrir ou ajouter une étape rouvre la tâche, même si elle était déjà terminée. Supprimer une étape demande une confirmation portant son titre. Si des étapes restent, la réalisation du parent est recalculée ; supprimer la dernière conserve l’état du parent juste avant suppression et lui rend sa case manuelle. Supprimer le parent supprime toutes ses étapes, comme annoncé dans sa confirmation.
 
@@ -155,3 +155,15 @@ La migration additive [0003_task_steps.sql](migrations/0003_task_steps.sql) cons
 | DELETE `/api/tasks/:id` | Sans corps ; **204**, parent et étapes supprimés |
 
 Chaque tâche expose `steps: []` si elle est simple, sinon un tableau ordonné de `{ id, taskId, title, completed, position }`. PATCH du parent contenant `completed` est refusé en **409 `TASK_HAS_STEPS`** dès qu’il possède des étapes, sans appliquer les autres champs soumis. Les autres champs du parent restent modifiables par PATCH partiel. Entrée invalide : 400 ; tâche/étape absente ou étape d’un autre parent : 404 ; service indisponible : 503. Origine obligatoire, JSON pour POST/PATCH et cache `no-store` restent applicables.
+
+## Étapes manuelles — M2 Réordonner
+
+M2 est validé, y compris le contrôle tactile rapporté par l’utilisateur le 13 novembre 2026 sur A37 avec Chrome (OS et versions non précisés dans ce retour). Le changement complet compte 16/16 tâches ; Verify final reste à effectuer avant clôture.
+
+**Monter** et **Descendre** échangent une étape avec sa voisine parmi toutes les étapes, terminées incluses. Les commandes aux bornes sont désactivées. Elles fonctionnent au clavier et au toucher, conservent le focus sur une commande disponible de l’étape et annoncent sa nouvelle position. Elles préservent les titres, réalisations et brouillons non enregistrés. Aucun glisser-déposer ni migration supplémentaire.
+
+PATCH `/api/tasks/:id/steps/order` reçoit exactement `{ stepId, direction: "up" | "down", expectedOrder: [/* tous les UUID dans l’ordre observé */] }` et retourne 200 avec la tâche complète. Un déplacement valide hors borne retourne la tâche inchangée, sans écriture. UUID/types/doublons/champs invalides : 400 ; cible absente ou d’un autre parent : 404. Les protections origine/JSON/`no-store` restent identiques.
+
+Un ajout, une suppression ou un déplacement externe invalide `expectedOrder` : **409 `STEP_ORDER_CHANGED`**, sans écriture. Un simple renommage ou changement d’état ne bloque pas le déplacement et ses valeurs sont conservées. Après conflit, relire les ressources avant de décider d’un nouveau déplacement ; aucune répétition automatique et aucun ancien tableau local n’est réappliqué. Une réponse perdue impose également la relecture complète des tâches et catégories.
+
+Après `pnpm build`, `pnpm check:persistence` et `pnpm check:recovery` déplacent réellement des étapes puis comparent leur ordre après redémarrage/restauration sur leurs bases jetables. Ils ne valident ni la sauvegarde personnelle ni le toucher sur téléphone. Le [checkpoint](runs/current.md) distingue les preuves automatisées de la validation tactile rapportée et conserve le protocole.

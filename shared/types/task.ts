@@ -20,3 +20,9 @@ export interface TaskStep {
   position: number
 }
 export type StepUpdate = Partial<Pick<TaskStep, 'title' | 'completed'>>
+
+export interface StepOrder {
+  stepId: string
+  direction: 'up' | 'down'
+  expectedOrder: string[]
+}

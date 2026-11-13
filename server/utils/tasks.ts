@@ -1,3 +1,4 @@
+import { StepOrderChanged } from '../domain/task-steps'
 import { createError } from 'h3'
 import { serverConnection } from './database'
 import { TaskHasSteps, InvalidTask, MissingTask, MissingTaskCategory, taskRepository } from '../domain/tasks'
@@ -7,6 +8,7 @@ export function repository() {
 }
 
 export function taskError(error: unknown): never {
+  if (error instanceof StepOrderChanged) throw createError({ statusCode: 409, data: { code: 'STEP_ORDER_CHANGED' }, message: error.message })
   if (error instanceof TaskHasSteps) throw createError({ statusCode: 409, data: { code: 'TASK_HAS_STEPS' }, message: error.message })
   if (error instanceof MissingTaskCategory) throw createError({ statusCode: 404, data: { code: 'CATEGORY_MISSING' }, message: error.message })
   if (error instanceof MissingTask) throw createError({ statusCode: 404, statusMessage: 'Tâche absente', message: error.message })

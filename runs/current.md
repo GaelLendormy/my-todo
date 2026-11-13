@@ -1,3 +1,71 @@
+# Checkpoint — Étapes manuelles, M1 et M2 validés
+
+13 novembre 2026. Changement `etapes-manuelles-des-taches`, schéma `spec-driven`. **M2 explicitement autorisé le 13 novembre**, après M1 validé 10/10. Base de travail : `main`, commit `0b9dd2d` (`Implement manual task steps milestone`), arbre propre au lancement. M2 est validé ; ce checkpoint est inclus dans le commit M2 demandé par l’utilisateur le 13 novembre. Aucun autre milestone, migration, dépendance, réseau, service système ou donnée personnelle modifié par l’agent.
+
+**Progression actuelle : 16/16**, M1 10/10 et M2 6/6. La tâche 2.6 est cochée après validation tactile rapportée par l’utilisateur sur téléphone réel. Le handoff ci-dessous est prêt ; Verify final reste à effectuer dans un contexte neuf.
+
+## Validation tactile M2 rapportée par l’utilisateur
+
+- Retour reçu le 13 novembre 2026 : **« A37 chrome test validé »**, en réponse à la marche à suivre en six points. Appareil annoncé : **A37** ; navigateur : **Chrome**. OS et versions non précisés dans ce retour.
+- L’utilisateur valide les déplacements au toucher jusqu’aux deux bornes, la conservation des réalisations et des brouillons, l’ordre après actualisation et relecture PC, le conflit d’ordre entre appareils suivi de la relecture et d’un nouveau choix, le renommage externe compatible avec un déplacement et l’ergonomie des titres longs/clavier. Aucun défaut signalé. Ces résultats sont rapportés par l’utilisateur ; aucun agent n’a manipulé le téléphone.
+- Aucun code modifié lors de cette consignation. Les suites applicatives ne sont pas relancées pour ces seuls changements documentaires ; les résultats attribués à l’agent et au coordinateur ci-dessous restent les preuves des contrôles précédents.
+- La consignation du retour tactile n’a lancé ni commit, push, Verify final ni archivage. L’utilisateur a ensuite demandé le commit M2 ; Verify final reste à effectuer en contexte neuf sur la cible enregistrée avant clôture.
+
+## Résultat M2 et fichiers utiles
+
+- [Domaine](../server/domain/task-steps.ts), [route statique](../server/api/tasks/[id]/steps/order.patch.ts), [erreurs](../server/utils/tasks.ts), [types](../shared/types/task.ts) : déplacement adjacent dans l’ordre global, terminées incluses. Transaction immédiate acquise avant lecture ; `expectedOrder` comparé avant toute écriture. Échange via position positive libre, positions finales denses et uniques. Les bornes retournent sans écriture. Aucun titre, état ou champ parent modifié par le déplacement.
+- Un ajout, une suppression ou un déplacement externe donne 409 `STEP_ORDER_CHANGED`, sans écriture. Un renommage ou changement d’état ne bloque pas le déplacement et conserve les valeurs actuelles. Cible absente/autre parent : 404 ; corps/UUID/doublons/types/champs invalides : 400. Route statique distincte de PATCH d’étape, protections origine/JSON/`no-store` conservées.
+- [TaskSteps](../app/components/TaskSteps.vue), [TaskDetail](../app/components/TaskDetail.vue), [coordination](../app/composables/useTaskResources.ts) : Monter/Descendre identifient chaque étape, sont désactivés aux bornes, annoncent la position dans le status existant et conservent le focus sur une commande disponible de la même étape (titre en secours). Brouillons M1 et correction de confirmation à titre long préservés. Après conflit, toutes les mutations attendent la relecture ; après résultat incertain, le même blocage persiste jusqu’à lecture complète tâches/catégories. Aucun rejeu ni tableau local réappliqué.
+- [Tests métier](../tests/step-order.test.ts), [API](../tests/e2e/steps-api.spec.ts), [parcours](../tests/e2e/step-order.spec.ts) et [scénario partagé des scripts](../scripts/check-steps.ts). Les scripts existants appellent ce scénario et comparent un ordre réellement inversé après redémarrage/restauration. [README](../README.md#étapes-manuelles--m2-réordonner) et [Développement](../documentation/DEVELOPPEMENT.md#étapes-manuelles--m2) documentent contrat, gestes, conflits et limites.
+
+## Contrôles M2 exécutés
+
+| Commande / contrôle | Exécutant et résultat |
+| --- | --- |
+| `pnpm test` | Agent M2 : **116/116**, dont 15 nouveaux cas d’ordre. Bornes sans écriture (triggers), rollback après première écriture, invariance, deux connexions avec ordre initial commun et cinq actions externes. |
+| `pnpm typecheck` | Agent M2 : réussi, nouvelle passe incluant les tests API/Playwright et scripts finaux. |
+| `pnpm lint` | Agent M2 : réussi sans avertissement. |
+| `pnpm build` | Agent M2 : réussi ; avertissement de sourcemap Nuxt module-preload-polyfill préexistant. |
+| `pnpm test:e2e` | **Coordinateur**, sur code/build courant inchangé : **77/77**, 40,3 s, dont six nouveaux cas M2 (API et cinq parcours). Succession aux deux bornes avec Entrée/Espace, focus, ordre relu, étapes terminées, brouillons aux viewports 390 et 1280 px ; GET différé, refus, double activation, conflit externe, réponse perdue après vraie écriture et relecture partielle. Suites M1 conservées, y compris titres très longs. |
+| `pnpm check:persistence` | **Coordinateur** : réussi sur base jetable, ordre réellement modifié retrouvé après redémarrage. |
+| `pnpm check:recovery` | **Coordinateur** : réussi sur copies jetables, ordre réellement modifié retrouvé après restauration. |
+| `openspec validate etapes-manuelles-des-taches --strict`, `git diff --check` | Agent M2 : réussis. |
+| Liens locaux README/Développement/tasks/checkpoint | Agent M2 : cibles existantes ; Markdown relu. |
+| Contrôle manuel navigateur PC, 1280×900 | **Coordinateur**, CUA/iab, serveur compilé jetable : parcours clavier réussi, détails ci-dessous. |
+
+Les résultats du coordinateur ont été transmis explicitement dans son message de reprise, après sortie globale 0 ; ils ne sont pas présentés comme exécutés par l’agent M2. Aucun changement de source depuis cette passe ; seuls les documents/checklists sont ensuite actualisés.
+
+Échecs techniques et limites : les trois commandes avec serveur ont d’abord échoué **avant exécution des tests** en sandbox (EPERM sur socket IPC `tsx` dans `/tmp/tsx-1000/`). Les demandes d’escalade du sous-agent sont restées en attente et ont été interrompues ; aucun succès n’en a été déduit. Le coordinateur a ensuite exécuté les trois contrôles hors sandbox avec les autorisations normales. La tentative de navigateur manuel de l’agent M2 a renvoyé `Browser is not available: iab`, puis inventaire `apps: [], browsers: []` ; aucun parcours manuel n’est attribué à cette tentative.
+
+## Contrôle manuel PC exécuté par le coordinateur
+
+Le 13 novembre 2026, dans CUA/iab à 1280×900 sur le serveur jetable, le coordinateur a créé via l’interface « Contrôle manuel M2 » avec A/B/C, puis terminé B avec Espace. Il a saisi les brouillons parent « Brouillon parent M2 », renommage de B « Brouillon renommage M2 » et ajout « Brouillon ajout M2 ».
+
+- Monter C par Entrée puis Espace : positions 2 puis 1 annoncées ; en première place, Monter désactivé et focus observé sur Descendre C.
+- Descendre C par Entrée puis Espace : positions 2 puis 3 annoncées ; en dernière place, Descendre désactivé et focus observé sur Monter C.
+- Un dernier Monter puis Actualiser : ordre A/C/B confirmé, B toujours cochée et les trois brouillons conservés. Mesure DOM : aucun débordement horizontal.
+
+Capture réelle sauvegardée par le coordinateur : `/tmp/mytodo-m2-manual-desktop.png`. Viewport réinitialisé, onglet fermé. Serveur `scripts/e2e-server.ts` arrêté proprement par Ctrl+C (session 1898 terminée) ; le coordinateur a vérifié l’absence de processus `e2e-server.ts` et `.output/server/index.mjs`. Ces observations sont celles du coordinateur, transmises à l’agent M2 ; le sous-agent n’a pas manipulé le navigateur. La tâche 2.5 est cochée sur ces preuves, les checks déjà exécutés et les validations documentaires ; aucune suite applicative relancée pour cette seule consignation.
+
+## Protocole tactile M2 — validé par retour utilisateur
+
+La grille ci-dessous conserve le protocole initial, complété par la marche à suivre en six points dans la conversation et validé par le retour utilisateur consigné en tête. Les contrôles automatisés et le navigateur du coordinateur restent distincts de ce résultat tactile rapporté. Pour une reproduction, utiliser seulement une instance de test autorisée et des données jetables.
+
+1. Consigner date, appareil, OS/version et navigateur/version disponibles, et préciser observation directe ou résultat rapporté par l’utilisateur.
+2. Créer un parent avec au moins quatre étapes, dont une terminée au milieu et une à titre long avec/sans espaces. Garder un brouillon parent et une saisie d’ajout ou de renommage non soumise.
+3. Au toucher, monter la dernière étape jusqu’en première position puis la redescendre jusqu’en dernière. Contrôler chaque déplacement d’une place, les commandes désactivées aux bornes, les boutons utilisables sans survol, l’absence de défilement horizontal et la lisibilité des titres longs. Les réalisations restent inchangées et les étapes terminées gardent leur place dans l’ordre global.
+4. Vérifier le détail ouvert, les brouillons conservés et l’annonce de position ; Actualiser puis relire depuis le PC : mêmes identifiants, titres, états et ordre confirmé. Fermer/réouvrir : opérations confirmées conservées, brouillons abandonnés.
+5. Pour le conflit entre appareils, charger le même ordre sur PC et téléphone ; déplacer/ajouter/supprimer sur PC puis demander un déplacement sur téléphone sans relire. Attendre le refus explicite sans déplacement local ni répétition ; relire, contrôler le nouvel ordre, puis choisir volontairement un nouveau déplacement. Un simple renommage ou changement d’état externe ne doit pas provoquer ce conflit.
+6. Reporter précisément résultats/anomalies. Cocher 2.6 uniquement après ce contrôle et bilan final, puis préparer Verify sur la cible stable.
+
+## Handoff Verify prêt après contrôle tactile
+
+Ne pas lancer Verify final, review indépendante, nouveau chat ou archive automatiquement. Cible à identifier avec Git : `main`, HEAD après le commit M2 demandé, incluant M1 (`0b9dd2d`) et le réordonnancement M2 ; relever le SHA exact et l’état du checkout avant Verify. Les sources sont inchangées depuis les checks ci-dessus ; le commit inclut aussi la validation tactile et ce handoff. Lire [AGENTS](../AGENTS.md), le [template](../ai-workflow/templates/AGENTS.project.md), les [artefacts du changement](../openspec/changes/etapes-manuelles-des-taches/tasks.md), brief/Foundation/UI et ce checkpoint dans un contexte neuf. Les décisions autorisées sont M1 puis M2, sans planification, glisser-déposer, migration ou dépendance nouvelle. Vérifier la correspondance specs/design/code et les preuves de tests ; conserver distinctes les observations de l’agent, les exécutions du coordinateur et la validation tactile utilisateur du 13 novembre consignée en tête. L’archivage exige une demande ultérieure après Verify et traitement/arbitrage des constats.
+
+---
+
+## Historique M1 — état antérieur à l’autorisation M2
+
 # Checkpoint — Étapes manuelles, M1 validé
 
 12 novembre 2026. Changement `etapes-manuelles-des-taches`, schéma `spec-driven`. **M1 « Décomposer et suivre » validé : 1.1–1.10 terminées**, après correction du débordement de confirmation et validation tactile rapportée par l’utilisateur. Progression globale **10/16**, M1 **10/10**, M2 **0/6**. Prochaine étape : attendre l’autorisation explicite de M2 « Réordonner les étapes ».

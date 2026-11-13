@@ -1,4 +1,4 @@
-import type { StepUpdate, Task } from '../../shared/types/task'
+import type { StepOrder, StepUpdate, Task } from '../../shared/types/task'
 import type { Category } from '../../shared/types/category'
 import { sortCategories } from '#shared/category-names'
 
@@ -67,7 +67,7 @@ export function useTaskResources() {
     }
     finally { saving.value = false }
   }
-  async function changeStep(taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate) {
+  async function changeStep(taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate | StepOrder) {
     if (blocked.value) return false
     saving.value = true
     message.value = 'Enregistrement en cours…'
@@ -77,7 +77,8 @@ export function useTaskResources() {
       })
       const previous = tasks.value.find(task => task.id === taskId)
       tasks.value = tasks.value.map(task => task.id === saved.id ? saved : task)
-      message.value = saved.completed !== previous?.completed
+      const moved = body && 'expectedOrder' in body ? saved.steps.find(step => step.id === body.stepId) : undefined
+      message.value = moved ? `Étape « ${moved.title} » déplacée en position ${moved.position + 1} sur ${saved.steps.length}.` : saved.completed !== previous?.completed
         ? `Étape enregistrée. La tâche est ${saved.completed ? 'terminée' : 'rouverte'}. Son détail reste ouvert.`
         : 'Étape enregistrée. Son détail reste ouvert.'
       return true
@@ -85,6 +86,11 @@ export function useTaskResources() {
     catch (error) {
       const status = (error as { response?: { status?: number } }).response?.status
       if (status && status >= 400 && status < 500) {
+        if (status === 409 && (error as { data?: { data?: { code?: string } } }).data?.data?.code === 'STEP_ORDER_CHANGED') {
+          uncertain.value = true
+          message.value = 'L’ordre des étapes a changé. Aucun déplacement effectué. Relisez la liste avant de décider d’un nouveau déplacement ; vos saisies sont conservées.'
+          return false
+        }
         message.value = status === 404
           ? 'Cette tâche ou étape est absente. Actualisez ; votre saisie est conservée.'
           : 'Modification d’étape refusée. Votre saisie est conservée.'

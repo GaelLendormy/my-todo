@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { and, eq } from 'drizzle-orm'
-import type { StepUpdate } from '../../shared/types/task'
+import type { StepOrder, StepUpdate } from '../../shared/types/task'
 import type { openDatabase } from '../db/database'
 import { tasks, taskSteps } from '../db/schema'
 import { InvalidTask, MissingTask, parseCreation, parseId } from './tasks'
@@ -16,6 +16,20 @@ export function parseStepUpdate(input: unknown): StepUpdate {
     update.completed = input.completed
   }
   return update
+}
+
+export class StepOrderChanged extends Error {}
+
+export function parseStepOrder(input: unknown): StepOrder {
+  if (!input || typeof input !== 'object' || Array.isArray(input)
+    || Object.keys(input).length !== 3 || Object.keys(input).some(key => !['stepId', 'direction', 'expectedOrder'].includes(key))
+    || !('stepId' in input) || !('direction' in input) || !('expectedOrder' in input)) throw new InvalidTask('Déplacement invalide.')
+  const stepId = parseId(input.stepId)
+  if (input.direction !== 'up' && input.direction !== 'down') throw new InvalidTask('Direction invalide.')
+  if (!Array.isArray(input.expectedOrder)) throw new InvalidTask('Ordre invalide.')
+  const expectedOrder = input.expectedOrder.map(id => parseId(id))
+  if (new Set(expectedOrder).size !== expectedOrder.length) throw new InvalidTask('Ordre invalide.')
+  return { stepId, direction: input.direction, expectedOrder }
 }
 
 export function stepRepository(connection: ReturnType<typeof openDatabase>) {
@@ -36,6 +50,27 @@ export function stepRepository(connection: ReturnType<typeof openDatabase>) {
     return where
   }
   return {
+    move(id: unknown, input: unknown) {
+      const taskId = parseId(id)
+      const { stepId, direction, expectedOrder } = parseStepOrder(input)
+      return connection.sqlite.transaction(() => {
+        const current = readTask(connection, taskId)
+        if (!current) throw new MissingTask('Cette tâche est absente.')
+        requireStep(taskId, stepId)
+        if (current.steps.length !== expectedOrder.length || current.steps.some((step, index) => step.id !== expectedOrder[index])) {
+          throw new StepOrderChanged('L’ordre des étapes a changé. Relisez avant de déplacer à nouveau.')
+        }
+        const index = current.steps.findIndex(step => step.id === stepId)
+        const destination = index + (direction === 'up' ? -1 : 1)
+        if (destination < 0 || destination >= current.steps.length) return current
+        const neighbor = current.steps[destination]!
+        // Three writes free a positive position before exchanging unique positions.
+        connection.db.update(taskSteps).set({ position: current.steps.length }).where(eq(taskSteps.id, stepId)).run()
+        connection.db.update(taskSteps).set({ position: index }).where(eq(taskSteps.id, neighbor.id)).run()
+        connection.db.update(taskSteps).set({ position: destination }).where(eq(taskSteps.id, stepId)).run()
+        return readTask(connection, taskId)!
+      }).immediate()
+    },
     create(id: unknown, input: unknown) {
       const { title } = parseCreation(input)
       return mutate(id, (taskId) => {

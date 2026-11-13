@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { StepUpdate, Task, TaskStep } from '../../shared/types/task'
+import type { StepOrder, StepUpdate, Task, TaskStep } from '../../shared/types/task'
 const props = defineProps<{
   task: Task
   blocked: boolean
   saving: boolean
-  changeStep: (taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate) => Promise<boolean>
+  changeStep: (taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate | StepOrder) => Promise<boolean>
 }>()
 const addition = ref('')
 const renameId = ref<string | null>(null)
@@ -40,6 +40,18 @@ async function toggle(step: TaskStep) {
   await props.changeStep(props.task.id, 'PATCH', step.id, { completed: !step.completed })
   await nextTick()
   document.getElementById(`step-check-${step.id}`)?.focus()
+}
+async function move(step: TaskStep, direction: 'up' | 'down') {
+  if (props.blocked) return
+  await props.changeStep(props.task.id, 'PATCH', 'order', {
+    stepId: step.id, direction, expectedOrder: props.task.steps.map(item => item.id),
+  })
+  await nextTick()
+  const preferred = document.getElementById(`step-${direction}-${step.id}`) as HTMLButtonElement | null
+  const alternate = document.getElementById(`step-${direction === 'up' ? 'down' : 'up'}-${step.id}`) as HTMLButtonElement | null
+  if (preferred && !preferred.disabled) preferred.focus()
+  else if (alternate && !alternate.disabled) alternate.focus()
+  else document.getElementById(`step-title-${step.id}`)?.focus()
 }
 async function focusStep(id: string) {
   await nextTick()
@@ -93,11 +105,13 @@ function trapFocus(event: KeyboardEvent) {
     <p v-if="task.steps.length" class="progress">{{ task.steps.filter(step => step.completed).length }} étapes sur {{ task.steps.length }} terminées</p>
     <p class="message">Chaque opération d’étape est enregistrée séparément, sans enregistrer le formulaire de la tâche. Retour et Annuler abandonnent les saisies non soumises, mais conservent les étapes confirmées. Ajouter une étape à faire rouvre une tâche terminée.</p>
     <ul v-if="task.steps.length" class="step-list">
-      <li v-for="step in task.steps" :key="step.id">
+      <li v-for="(step, index) in task.steps" :key="step.id">
         <input :id="`step-check-${step.id}`" type="checkbox" :checked="step.completed" :disabled="blocked" :aria-label="`${step.completed ? 'Rouvrir' : 'Terminer'} l’étape : ${step.title}`" @click.prevent="toggle(step)">
         <div class="step-content">
-          <p>{{ step.title }}</p>
+          <p :id="`step-title-${step.id}`" tabindex="-1">{{ step.title }}</p>
           <div class="detail-actions">
+            <button :id="`step-up-${step.id}`" class="secondary" :disabled="blocked || index === 0" :aria-label="`Monter l’étape : ${step.title}`" @click="move(step, 'up')">Monter</button>
+            <button :id="`step-down-${step.id}`" class="secondary" :disabled="blocked || index === task.steps.length - 1" :aria-label="`Descendre l’étape : ${step.title}`" @click="move(step, 'down')">Descendre</button>
             <button :id="`rename-${step.id}`" class="secondary" :disabled="blocked" :aria-label="`Renommer l’étape : ${step.title}`" @click="rename(step)">Renommer</button>
             <button class="danger" :disabled="blocked" :aria-label="`Supprimer l’étape : ${step.title}`" @click="askDelete(step)">Supprimer</button>
           </div>

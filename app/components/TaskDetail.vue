@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { priorityLabels, isOverdue } from '#shared/task-selection'
-import type { StepUpdate, TaskPriority, Task } from '../../shared/types/task'
+import type { StepOrder, StepUpdate, TaskPriority, Task } from '../../shared/types/task'
 import type { Category } from '../../shared/types/category'
-defineProps<{ task: Task, categories: Category[], blocked: boolean, saving: boolean, unavailable: boolean, inView: boolean, today: string, changeStep: (taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate) => Promise<boolean> }>()
+defineProps<{ task: Task, categories: Category[], blocked: boolean, saving: boolean, unavailable: boolean, inView: boolean, today: string, changeStep: (taskId: string, method: 'POST' | 'PATCH' | 'DELETE', stepId?: string, body?: StepUpdate | StepOrder) => Promise<boolean> }>()
 const title = defineModel<string>('title', { required: true })
 const categoryId = defineModel<string | null>('categoryId', { required: true })
 const priority = defineModel<TaskPriority>('priority', { required: true })
