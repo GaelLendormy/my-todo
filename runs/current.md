@@ -2,7 +2,24 @@
 
 13 novembre 2026. Changement `etapes-manuelles-des-taches`, schéma `spec-driven`. **M2 explicitement autorisé le 13 novembre**, après M1 validé 10/10. Base de travail : `main`, commit `0b9dd2d` (`Implement manual task steps milestone`), arbre propre au lancement. M2 est validé ; ce checkpoint est inclus dans le commit M2 demandé par l’utilisateur le 13 novembre. Aucun autre milestone, migration, dépendance, réseau, service système ou donnée personnelle modifié par l’agent.
 
-**Progression actuelle : 16/16**, M1 10/10 et M2 6/6. La tâche 2.6 est cochée après validation tactile rapportée par l’utilisateur sur téléphone réel. Le handoff ci-dessous est prêt ; Verify final reste à effectuer dans un contexte neuf.
+**Progression actuelle : 16/16**, M1 10/10 et M2 6/6. La tâche 2.6 est cochée après validation tactile rapportée par l’utilisateur sur téléphone réel. Le Verify indépendant et le complément de couverture qui a suivi sont distingués ci-dessous ; le handoff M2 plus bas conserve son état historique.
+
+## Complément après Verify — lecture pendant une modification
+
+13 novembre 2026, base `main` à `15d3ac69435699d1f57269167232a26c7117f024`, arbre propre au démarrage. Le coordinateur rapporte un **Verify indépendant historique : 0 CRITICAL, 1 WARNING de couverture** pour le scénario [Lecture pendant une modification](../openspec/changes/etapes-manuelles-des-taches/specs/task-steps/spec.md#scenario-lecture-pendant-une-modification). Ce Verify a relancé avec succès 116 Vitest, 77 Playwright, types, lint, build, persistance et restauration. Ces résultats sont rapportés ; ils ne sont pas les exécutions de cet ajout et aucun nouveau Verify indépendant n’a été lancé ici.
+
+Ajout limité à [step-reading.test.ts](../tests/step-reading.test.ts) et ce checkpoint ; production, schéma, dépendances, specs et tâches **16/16** inchangés. Deux connexions SQLite réelles partagent une base temporaire en WAL (uniquement dans le test). Une interception locale au test du retour du SELECT des étapes sert de barrière synchrone : après sa lecture effective, la seconde connexion termine l’unique étape et confirme son parent ; seulement ensuite, le lecteur poursuit le SELECT des parents. Le test exige cet ordre précis des trois phases, le snapshot initial complet et cohérent retourné par `taskRepository.list()`, puis une relecture retrouvant la mutation confirmée.
+
+Le contrôle négatif exécute le même entrelacement par appel direct de `readTasks` sans transaction, sans modifier de source applicative : il observe le mélange exact (étape ancienne non terminée, parent nouvellement terminé) et vérifie que l’assertion de cohérence échoue. Le cas positif protège ainsi réellement la transaction du repository. Aucune course, temporisation, worker ni attente de signal ; les appels SQLite conservent le `busy_timeout` existant de 5 s. Connexions, interception et répertoire temporaire sont nettoyés dans `finally`.
+
+Contrôles exécutés par l’agent de ce complément :
+
+- `pnpm test tests/step-reading.test.ts` : **2/2**, puis **2/2** après ajout de l’assertion explicite du passage au SELECT parent.
+- `pnpm test` : **118/118**, 7 fichiers, dont les deux nouveaux cas.
+- `pnpm typecheck` et `pnpm lint` : réussis, sans avertissement.
+- `git diff --check` : réussi ; liens locaux ajoutés vérifiés et Markdown relu.
+
+Pas de nouveau build, e2e, serveur, persistance/restauration ni contrôle tactile : seul le test est ajouté. Aucun commit, push, archivage ou changement de configuration. WAL rend le commit intermédiaire observable dans ce test ; il ne change pas le mode de la base de production. Les deux connexions sont entrelacées sur le même thread au niveau des vrais résultats SQLite, sans simuler les données ni prouver une charge multi-thread.
 
 ## Validation tactile M2 rapportée par l’utilisateur
 
