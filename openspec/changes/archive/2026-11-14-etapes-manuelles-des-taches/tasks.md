@@ -4,7 +4,7 @@ Le périmètre, les règles métier et le découpage ont été validés dans la 
 
 **Statut du 13 novembre 2026 : M1 et M2 validés, 16/16 tâches.** M1 compte 10/10 tâches et M2 6/6. Le contrôle tactile M2 est confirmé par l’utilisateur sur A37 avec Chrome (« test validé »), sans OS ni versions précisés dans ce retour. Verify final reste à effectuer en contexte neuf avant clôture.
 
-Références : [proposition](proposal.md), [design](design.md), [étapes](specs/task-steps/spec.md), [gestion](specs/task-management/spec.md), [Foundation](../../../documentation/PROJECT_FOUNDATION.md). Toutes les validations applicatives utilisent des données jetables ; aucune configuration réseau ou base personnelle n'est modifiée pour les checks.
+Références : [proposition](proposal.md), [design](design.md), [étapes](specs/task-steps/spec.md), [gestion](specs/task-management/spec.md), [Foundation](../../../../documentation/PROJECT_FOUNDATION.md). Toutes les validations applicatives utilisent des données jetables ; aucune configuration réseau ou base personnelle n'est modifiée pour les checks.
 
 ## 1. M1 — Décomposer et suivre
 

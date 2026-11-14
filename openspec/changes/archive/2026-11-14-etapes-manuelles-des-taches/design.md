@@ -101,7 +101,7 @@ M1 ne présente aucune commande de déplacement factice ; M2 réalise toute l'ex
 ## Migration Plan
 
 1. Tester la migration sur base vierge, depuis une base peuplée au schéma 0000 et depuis 0002 avec catégories, priorités, échéances et états variés ; réapplication et réouverture sans perte.
-2. Avant migration personnelle, arrêter le service et effectuer une copie cohérente vers un emplacement distinct selon le [protocole existant](../../../documentation/EXPLOITATION_M3.md). Les checks du changement utilisent exclusivement des données jetables.
+2. Avant migration personnelle, arrêter le service et effectuer une copie cohérente vers un emplacement distinct selon le [protocole existant](../../../../documentation/EXPLOITATION_M3.md). Les checks du changement utilisent exclusivement des données jetables.
 3. Appliquer explicitement `pnpm db:migrate`, puis lancer le code compatible ; le démarrage ne migre pas automatiquement. M2 n'ajoute pas de migration.
 4. Vérifier après redémarrage et restauration les identités, contenus, états et ordres des étapes ainsi que tous les champs des parents et catégories. La suppression du parent ne laisse aucune étape persistante.
 5. Aucun retour destructif automatique ni migration inverse. Restaurer une copie antérieure avec sa version de code compatible abandonne les changements postérieurs ; conserver la base actuelle séparément avant une telle décision.
